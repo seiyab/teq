@@ -1,0 +1,5 @@
+runner:
+  gost:
+    cmd: go vet -vettool="$(which gost)" ./...
+    format: govet
+    level: warning
