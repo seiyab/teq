@@ -99,26 +99,37 @@ func recursions() []test {
 		i int
 		r *privateRecursiveStruct
 	}
-	r1 := privateRecursiveStruct{1, nil}
-	r1.r = &r1
-	r2 := privateRecursiveStruct{1, nil}
-	r2.r = &r2
+	r1_1 := privateRecursiveStruct{1, nil}
+	r1_1.r = &r1_1
+	r1_2 := privateRecursiveStruct{1, nil}
+	r1_2.r = &r1_2
+	r1_3 := privateRecursiveStruct{2, nil}
+	r1_3.r = &r1_3
+	r1_4 := privateRecursiveStruct{4, nil}
+	r1_5 := privateRecursiveStruct{4, nil}
+	r1_4.r = &r1_5
+	r1_5.r = &r1_4
+	r1_6 := privateRecursiveStruct{4, nil}
+	r1_6.r = &r1_6
 
 	type PublicRecursiveStruct struct {
 		I int
 		R *PublicRecursiveStruct
 	}
-	r3 := PublicRecursiveStruct{1, nil}
-	r3.R = &r3
-	r4 := PublicRecursiveStruct{1, nil}
-	r4.R = &r4
+	r2_1 := PublicRecursiveStruct{1, nil}
+	r2_1.R = &r2_1
+	r2_2 := PublicRecursiveStruct{1, nil}
+	r2_2.R = &r2_2
 
 	return []test{
-		{r1, r1, nil, false},
-		{r1, r2, nil, false},
+		{r1_1, r1_1, nil, false},
+		{r1_1, r1_2, nil, false},
+		{r1_1, r1_3, []string{"expected {1, <cyclic>}, got {2, <cyclic>}"}, true},
+		{r1_4, r1_5, nil, false},
+		{r1_4, r1_6, nil, false},
 
-		{r3, r3, nil, false},
-		{r3, r4, nil, false},
+		{r2_1, r2_1, nil, false},
+		{r2_1, r2_2, nil, false},
 	}
 }
 
