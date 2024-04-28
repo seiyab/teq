@@ -6,6 +6,7 @@ package teq
 
 import (
 	"reflect"
+	"unsafe"
 )
 
 // During deepValueEqual, must keep track of checks that are
@@ -13,9 +14,9 @@ import (
 // checks in progress are true when it reencounters them.
 // Visited comparisons are stored in a map indexed by visit.
 type visit struct {
-	// a1  unsafe.Pointer
-	// a2  unsafe.Pointer
-	// typ reflect.Type
+	a1  unsafe.Pointer
+	a2  unsafe.Pointer
+	typ reflect.Type
 }
 
 const maxDepth = 1_000
@@ -30,6 +31,33 @@ func (teq Teq) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, dept
 	if v1.Type() != v2.Type() {
 		return false
 	}
+
+	if hard(v1.Kind()) {
+		if v1.CanAddr() && v2.CanAddr() {
+			addr1 := v1.Addr().UnsafePointer()
+			addr2 := v2.Addr().UnsafePointer()
+
+			// Short circuit
+			if uintptr(addr1) == uintptr(addr2) {
+				return true
+			}
+			if uintptr(addr1) > uintptr(addr2) {
+				// Canonicalize order to reduce number of entries in visited.
+				addr1, addr2 = addr2, addr1
+			}
+
+			// Short circuit if references are already seen.
+			typ := v1.Type()
+			v := visit{addr1, addr2, typ}
+			if visited[v] {
+				return true
+			}
+
+			// Remember for later.
+			visited[v] = true
+		}
+	}
+
 	eqFn, ok := eqs[v1.Kind()]
 	if !ok {
 		panic("not implemented")
@@ -67,6 +95,14 @@ var eqs = map[reflect.Kind]func(teq Teq, v1, v2 reflect.Value, nx next) bool{
 	reflect.Float64:    floatEq,
 	reflect.Complex64:  complexEq,
 	reflect.Complex128: complexEq,
+}
+
+func hard(k reflect.Kind) bool {
+	switch k {
+	case reflect.Array, reflect.Slice, reflect.Map, reflect.Struct:
+		return true
+	}
+	return false
 }
 
 func todo(teq Teq, v1, v2 reflect.Value, nx next) bool {

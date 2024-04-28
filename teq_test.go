@@ -11,7 +11,7 @@ type test struct {
 	a             any
 	b             any
 	expected      []string
-	pendingFormat bool
+	pendingFormat bool // for development. we don't have stable format yet.
 }
 
 type group struct {
@@ -25,6 +25,7 @@ func TestEqual(t *testing.T) {
 	groups := []group{
 		{"primitives", primitives()},
 		{"structs", structs()},
+		{"recursions", recursions()},
 	}
 
 	for _, group := range groups {
@@ -35,6 +36,11 @@ func TestEqual(t *testing.T) {
 					mt := &mockT{}
 					assert.Equal(mt, test.a, test.b)
 					if len(mt.errors) != len(test.expected) {
+						if len(mt.errors) > len(test.expected) {
+							for _, e := range mt.errors {
+								t.Logf("got %q", e)
+							}
+						}
 						t.Fatalf("expected %d errors, got %d", len(test.expected), len(mt.errors))
 					}
 					if test.pendingFormat {
@@ -85,6 +91,34 @@ func structs() []test {
 
 		{withPointer{ref(1)}, withPointer{ref(1)}, nil, false},
 		{withPointer{ref(1)}, withPointer{ref(2)}, []string{"expected {1}, got {2}"}, true},
+	}
+}
+
+func recursions() []test {
+	type privateRecursiveStruct struct {
+		i int
+		r *privateRecursiveStruct
+	}
+	r1 := privateRecursiveStruct{1, nil}
+	r1.r = &r1
+	r2 := privateRecursiveStruct{1, nil}
+	r2.r = &r2
+
+	type PublicRecursiveStruct struct {
+		I int
+		R *PublicRecursiveStruct
+	}
+	r3 := PublicRecursiveStruct{1, nil}
+	r3.R = &r3
+	r4 := PublicRecursiveStruct{1, nil}
+	r4.R = &r4
+
+	return []test{
+		{r1, r1, nil, false},
+		{r1, r2, nil, false},
+
+		{r3, r3, nil, false},
+		{r3, r4, nil, false},
 	}
 }
 
