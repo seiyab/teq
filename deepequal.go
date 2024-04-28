@@ -19,10 +19,13 @@ type visit struct {
 	typ reflect.Type
 }
 
-const maxDepth = 1_000
-
-func (teq Teq) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, depth int) bool {
-	if depth > maxDepth {
+func (teq Teq) deepValueEqual(
+	v1, v2 reflect.Value,
+	visited map[visit]bool,
+	transformed map[reflect.Type]bool,
+	depth int,
+) bool {
+	if depth > teq.MaxDepth {
 		panic("maximum depth exceeded")
 	}
 	if !v1.IsValid() || !v2.IsValid() {
@@ -30,6 +33,15 @@ func (teq Teq) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, dept
 	}
 	if v1.Type() != v2.Type() {
 		return false
+	}
+
+	tr, ok := teq.transforms[v1.Type()]
+	if !transformed[v1.Type()] && ok {
+		t1 := tr(v1)
+		t2 := tr(v2)
+		trds := copyTransformed(transformed)
+		trds[v1.Type()] = true
+		return teq.deepValueEqual(t1, t2, visited, trds, depth)
 	}
 
 	if hard(v1.Kind()) {
@@ -63,7 +75,7 @@ func (teq Teq) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, dept
 		panic("not implemented")
 	}
 	var n next = func(v1, v2 reflect.Value) bool {
-		return teq.deepValueEqual(v1, v2, visited, depth+1)
+		return teq.deepValueEqual(v1, v2, visited, transformed, depth+1)
 	}
 	return eqFn(teq, v1, v2, n)
 }

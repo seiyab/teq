@@ -20,7 +20,7 @@ type group struct {
 }
 
 func TestEqual(t *testing.T) {
-	assert := teq.Teq{}
+	assert := teq.New()
 
 	groups := []group{
 		{"primitives", primitives()},
