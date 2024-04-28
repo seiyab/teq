@@ -12,6 +12,8 @@ type mockT struct {
 
 var _ teq.TestingT = &mockT{}
 
+func (t *mockT) Helper() {}
+
 func (t *mockT) Errorf(format string, args ...interface{}) {
 	t.errors = append(t.errors, fmt.Sprintf(format, args...))
 }
