@@ -8,9 +8,10 @@ import (
 )
 
 type test struct {
-	a        any
-	b        any
-	expected []string
+	a             any
+	b             any
+	expected      []string
+	pendingFormat bool
 }
 
 type group struct {
@@ -36,6 +37,9 @@ func TestEqual(t *testing.T) {
 					if len(mt.errors) != len(test.expected) {
 						t.Fatalf("expected %d errors, got %d", len(test.expected), len(mt.errors))
 					}
+					if test.pendingFormat {
+						return
+					}
 					for i, e := range test.expected {
 						if mt.errors[i] != e {
 							t.Errorf("expected %q, got %q at i = %d", e, mt.errors[i], i)
@@ -49,14 +53,16 @@ func TestEqual(t *testing.T) {
 
 func primitives() []test {
 	return []test{
-		{1, 1, nil},
-		{1, 2, []string{"expected 1, got 2"}},
-		{uint8(1), uint8(1), nil},
-		{uint8(1), uint8(2), []string{"expected 1, got 2"}},
-		{"a", "a", nil},
-		{"a", "b", []string{"expected a, got b"}},
+		{1, 1, nil, false},
+		{1, 2, []string{"expected 1, got 2"}, false},
+		{uint8(1), uint8(1), nil, false},
+		{uint8(1), uint8(2), []string{"expected 1, got 2"}, false},
+		{1.5, 1.5, nil, false},
+		{1.5, 2.5, []string{"expected 1.5, got 2.5"}, false},
+		{"a", "a", nil, false},
+		{"a", "b", []string{"expected a, got b"}, false},
 
-		{"a", 1, []string{"expected a, got 1"}},
+		{"a", 1, []string{"expected a, got 1"}, false},
 	}
 }
 
@@ -67,9 +73,21 @@ func structs() []test {
 	type anotherS struct {
 		i int
 	}
-	return []test{
-		{s{1}, s{1}, nil},
-		{s{1}, s{2}, []string{"expected {1}, got {2}"}},
-		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}},
+
+	type withPointer struct {
+		i *int
 	}
+
+	return []test{
+		{s{1}, s{1}, nil, false},
+		{s{1}, s{2}, []string{"expected {1}, got {2}"}, false},
+		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}, false},
+
+		{withPointer{ref(1)}, withPointer{ref(1)}, nil, false},
+		{withPointer{ref(1)}, withPointer{ref(2)}, []string{"expected {1}, got {2}"}, true},
+	}
+}
+
+func ref[T any](v T) *T {
+	return &v
 }

@@ -3,6 +3,7 @@ package teq
 import "testing"
 
 type TestingT interface {
+	Helper()
 	Errorf(format string, args ...interface{})
 }
 
