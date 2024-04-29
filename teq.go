@@ -32,6 +32,26 @@ func (teq Teq) Equal(t TestingT, expected, actual any) bool {
 	return ok
 }
 
+func (teq Teq) NotEqual(t TestingT, expected, actual any) bool {
+	t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("panic in github.com/seiyab/teq. please report issue. message: %v", r)
+		}
+	}()
+	ok := !teq.equal(expected, actual)
+	if !ok {
+		if reflect.DeepEqual(expected, actual) {
+			t.Error("reflect.DeepEqual(expected, actual) == true.")
+		} else {
+			t.Errorf("expected %v != %v", expected, actual)
+			t.Log("reflect.DeepEqual(expected, actual) == false. maybe transforms made them equal.")
+		}
+	}
+	return ok
+
+}
+
 func (teq *Teq) AddTransform(transform any) {
 	ty := reflect.TypeOf(transform)
 	if ty.Kind() != reflect.Func {

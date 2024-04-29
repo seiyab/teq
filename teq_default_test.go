@@ -43,14 +43,23 @@ func TestEqual(t *testing.T) {
 						}
 						t.Fatalf("expected %d errors, got %d", len(test.expected), len(mt.errors))
 					}
-					if test.pendingFormat {
-						return
-					}
-					for i, e := range test.expected {
-						if mt.errors[i] != e {
-							t.Errorf("expected %q, got %q at i = %d", e, mt.errors[i], i)
+
+					if !test.pendingFormat {
+						for i, e := range test.expected {
+							if mt.errors[i] != e {
+								t.Errorf("expected %q, got %q at i = %d", e, mt.errors[i], i)
+							}
 						}
 					}
+
+					{
+						mt := &mockT{}
+						assert.NotEqual(mt, test.a, test.b)
+						if (len(mt.errors) > 0) == (len(test.expected) > 0) {
+							t.Errorf("expected (len(mt.errors) > 0) = %t, got %t", len(test.expected) > 0, len(mt.errors) > 0)
+						}
+					}
+
 				})
 			}
 		})
