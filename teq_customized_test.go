@@ -30,6 +30,35 @@ func TestEqual_Customized(t *testing.T) {
 		if reflect.DeepEqual(d1, d2) {
 			t.Error("expected d1 != d2, got d1 == d2 with reflect.DeepEqual")
 		}
+
+		type twoDates struct {
+			d1 time.Time
+			d2 time.Time
+		}
+		dt1 := twoDates{d1, d2}
+		dt2 := twoDates{d2, d1}
+
+		if defaultTeq.Equal(mt, dt1, dt2) {
+			t.Error("expected dt1 != dt2, got dt1 == dt2 with defaultTeq")
+		}
+		customizedTeq.Equal(t, dt1, dt2)
+
+		if reflect.DeepEqual(dt1, dt2) {
+			t.Error("expected dt1 != dt2, got dt1 == dt2 with reflect.DeepEqual")
+		}
+
+		t.Skip("slice is not supported yet")
+		ds1 := []time.Time{d1, d1, d2}
+		ds2 := []time.Time{d2, d1, d1}
+		if defaultTeq.Equal(mt, ds1, ds2) {
+			t.Error("expected ds1 != ds2, got ds1 == ds2 with defaultTeq")
+		}
+		if !customizedTeq.Equal(mt, ds1, ds2) {
+			t.Error("expected ds1 == ds2, got ds1 != ds2 with customizedTeq")
+		}
+		if reflect.DeepEqual(ds1, ds2) {
+			t.Error("expected ds1 != ds2, got ds1 == ds2 with reflect.DeepEqual")
+		}
 	})
 }
 

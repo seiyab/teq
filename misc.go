@@ -1,11 +1,16 @@
 package teq
 
-import "reflect"
+import (
+	"reflect"
+)
 
-func copyTransformed(m map[reflect.Type]bool) map[reflect.Type]bool {
-	c := make(map[reflect.Type]bool, len(m))
-	for k, v := range m {
-		c[k] = v
+func field(v reflect.Value, idx int) reflect.Value {
+	f1 := v.Field(idx)
+	if f1.CanAddr() {
+		return f1
 	}
-	return c
+	vc := reflect.New(v.Type()).Elem()
+	vc.Set(v)
+	rf := vc.Field(idx)
+	return reflect.NewAt(rf.Type(), rf.Addr().UnsafePointer()).Elem()
 }

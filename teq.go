@@ -62,7 +62,6 @@ func (teq Teq) equal(x, y any) bool {
 	return teq.deepValueEqual(
 		v1, v2,
 		make(map[visit]bool),
-		make(map[reflect.Type]bool),
 		0,
 	)
 }

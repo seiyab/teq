@@ -22,7 +22,6 @@ type visit struct {
 func (teq Teq) deepValueEqual(
 	v1, v2 reflect.Value,
 	visited map[visit]bool,
-	transformed map[reflect.Type]bool,
 	depth int,
 ) bool {
 	if depth > teq.MaxDepth {
@@ -36,12 +35,12 @@ func (teq Teq) deepValueEqual(
 	}
 
 	tr, ok := teq.transforms[v1.Type()]
-	if !transformed[v1.Type()] && ok {
+	if ok {
 		t1 := tr(v1)
 		t2 := tr(v2)
-		trds := copyTransformed(transformed)
-		trds[v1.Type()] = true
-		return teq.deepValueEqual(t1, t2, visited, trds, depth)
+		newTeq := New()
+		newTeq.MaxDepth = teq.MaxDepth
+		return newTeq.deepValueEqual(t1, t2, visited, depth)
 	}
 
 	if hard(v1.Kind()) {
@@ -75,7 +74,7 @@ func (teq Teq) deepValueEqual(
 		panic("not implemented")
 	}
 	var n next = func(v1, v2 reflect.Value) bool {
-		return teq.deepValueEqual(v1, v2, visited, transformed, depth+1)
+		return teq.deepValueEqual(v1, v2, visited, depth+1)
 	}
 	return eqFn(teq, v1, v2, n)
 }
@@ -146,7 +145,7 @@ func pointerEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 
 func structEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 	for i, n := 0, v1.NumField(); i < n; i++ {
-		if !nx(v1.Field(i), v2.Field(i)) {
+		if !nx(field(v1, i), field(v2, i)) {
 			return false
 		}
 	}
