@@ -77,12 +77,12 @@ func (teq Teq) deepValueEqual(
 	var n next = func(v1, v2 reflect.Value) bool {
 		return teq.deepValueEqual(v1, v2, visited, depth+1)
 	}
-	return eqFn(teq, v1, v2, n)
+	return eqFn(v1, v2, n)
 }
 
 type next func(v1, v2 reflect.Value) bool
 
-var eqs = map[reflect.Kind]func(teq Teq, v1, v2 reflect.Value, nx next) bool{
+var eqs = map[reflect.Kind]func(v1, v2 reflect.Value, nx next) bool{
 	reflect.Array:      arrayEq,
 	reflect.Slice:      sliceEq,
 	reflect.Interface:  interfaceEq,
@@ -117,11 +117,11 @@ func hard(k reflect.Kind) bool {
 	return false
 }
 
-func todo(teq Teq, v1, v2 reflect.Value, nx next) bool {
+func todo(v1, v2 reflect.Value, nx next) bool {
 	panic("not implemented")
 }
 
-func arrayEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+func arrayEq(v1, v2 reflect.Value, nx next) bool {
 	for i := 0; i < v1.Len(); i++ {
 		if !nx(v1.Index(i), v2.Index(i)) {
 			return false
@@ -130,7 +130,7 @@ func arrayEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 	return true
 }
 
-func sliceEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+func sliceEq(v1, v2 reflect.Value, nx next) bool {
 	if v1.IsNil() != v2.IsNil() {
 		return false
 	}
@@ -152,21 +152,21 @@ func sliceEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 	return true
 }
 
-func interfaceEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+func interfaceEq(v1, v2 reflect.Value, nx next) bool {
 	if v1.IsNil() || v2.IsNil() {
 		return v1.IsNil() == v2.IsNil()
 	}
 	return nx(v1.Elem(), v2.Elem())
 }
 
-func pointerEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+func pointerEq(v1, v2 reflect.Value, nx next) bool {
 	if v1.UnsafePointer() == v2.UnsafePointer() {
 		return true
 	}
 	return nx(v1.Elem(), v2.Elem())
 }
 
-func structEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+func structEq(v1, v2 reflect.Value, nx next) bool {
 	for i, n := 0, v1.NumField(); i < n; i++ {
 		if !nx(field(v1, i), field(v2, i)) {
 			return false
@@ -175,9 +175,9 @@ func structEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 	return true
 }
 
-func intEq(_ Teq, v1, v2 reflect.Value, _ next) bool     { return v1.Int() == v2.Int() }
-func uintEq(_ Teq, v1, v2 reflect.Value, _ next) bool    { return v1.Uint() == v2.Uint() }
-func stringEq(_ Teq, v1, v2 reflect.Value, _ next) bool  { return v1.String() == v2.String() }
-func boolEq(_ Teq, v1, v2 reflect.Value, _ next) bool    { return v1.Bool() == v2.Bool() }
-func floatEq(_ Teq, v1, v2 reflect.Value, _ next) bool   { return v1.Float() == v2.Float() }
-func complexEq(_ Teq, v1, v2 reflect.Value, _ next) bool { return v1.Complex() == v2.Complex() }
+func intEq(v1, v2 reflect.Value, _ next) bool     { return v1.Int() == v2.Int() }
+func uintEq(v1, v2 reflect.Value, _ next) bool    { return v1.Uint() == v2.Uint() }
+func stringEq(v1, v2 reflect.Value, _ next) bool  { return v1.String() == v2.String() }
+func boolEq(v1, v2 reflect.Value, _ next) bool    { return v1.Bool() == v2.Bool() }
+func floatEq(v1, v2 reflect.Value, _ next) bool   { return v1.Float() == v2.Float() }
+func complexEq(v1, v2 reflect.Value, _ next) bool { return v1.Complex() == v2.Complex() }
