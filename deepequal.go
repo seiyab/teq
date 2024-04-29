@@ -19,10 +19,12 @@ type visit struct {
 	typ reflect.Type
 }
 
-const maxDepth = 1_000
-
-func (teq Teq) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, depth int) bool {
-	if depth > maxDepth {
+func (teq Teq) deepValueEqual(
+	v1, v2 reflect.Value,
+	visited map[visit]bool,
+	depth int,
+) bool {
+	if depth > teq.MaxDepth {
 		panic("maximum depth exceeded")
 	}
 	if !v1.IsValid() || !v2.IsValid() {
@@ -30,6 +32,15 @@ func (teq Teq) deepValueEqual(v1, v2 reflect.Value, visited map[visit]bool, dept
 	}
 	if v1.Type() != v2.Type() {
 		return false
+	}
+
+	tr, ok := teq.transforms[v1.Type()]
+	if ok {
+		t1 := tr(v1)
+		t2 := tr(v2)
+		newTeq := New()
+		newTeq.MaxDepth = teq.MaxDepth
+		return newTeq.deepValueEqual(t1, t2, visited, depth)
 	}
 
 	if hard(v1.Kind()) {
@@ -134,7 +145,7 @@ func pointerEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 
 func structEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
 	for i, n := 0, v1.NumField(); i < n; i++ {
-		if !nx(v1.Field(i), v2.Field(i)) {
+		if !nx(field(v1, i), field(v2, i)) {
 			return false
 		}
 	}
