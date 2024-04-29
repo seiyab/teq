@@ -5,6 +5,7 @@
 package teq
 
 import (
+	"bytes"
 	"reflect"
 	"unsafe"
 )
@@ -83,7 +84,7 @@ type next func(v1, v2 reflect.Value) bool
 
 var eqs = map[reflect.Kind]func(teq Teq, v1, v2 reflect.Value, nx next) bool{
 	reflect.Array:      arrayEq,
-	reflect.Slice:      todo,
+	reflect.Slice:      sliceEq,
 	reflect.Interface:  interfaceEq,
 	reflect.Pointer:    pointerEq,
 	reflect.Struct:     structEq,
@@ -121,6 +122,28 @@ func todo(teq Teq, v1, v2 reflect.Value, nx next) bool {
 }
 
 func arrayEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+	for i := 0; i < v1.Len(); i++ {
+		if !nx(v1.Index(i), v2.Index(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func sliceEq(teq Teq, v1, v2 reflect.Value, nx next) bool {
+	if v1.IsNil() != v2.IsNil() {
+		return false
+	}
+	if v1.Len() != v2.Len() {
+		return false
+	}
+	if v1.UnsafePointer() == v2.UnsafePointer() {
+		return true
+	}
+	// Special case for []byte, which is common.
+	if v1.Type().Elem().Kind() == reflect.Uint8 {
+		return bytes.Equal(v1.Bytes(), v2.Bytes())
+	}
 	for i := 0; i < v1.Len(); i++ {
 		if !nx(v1.Index(i), v2.Index(i)) {
 			return false
