@@ -25,6 +25,7 @@ func TestEqual(t *testing.T) {
 	groups := []group{
 		{"primitives", primitives()},
 		{"structs", structs()},
+		{"slices", slices()},
 		{"recursions", recursions()},
 	}
 
@@ -103,6 +104,13 @@ func structs() []test {
 	}
 }
 
+func slices() []test {
+	return []test{
+		{[]int{1, 2}, []int{1, 2}, nil, false},
+		{[]int{1, 2}, []int{2, 1}, []string{"expected [1 2], got [2 1]"}, false},
+	}
+}
+
 func recursions() []test {
 	type privateRecursiveStruct struct {
 		i int
@@ -130,6 +138,11 @@ func recursions() []test {
 	r2_2 := PublicRecursiveStruct{1, nil}
 	r2_2.R = &r2_2
 
+	var r3_1 []any
+	r3_1 = append(r3_1, 1, 2, r3_1)
+	var r3_2 []any
+	r3_2 = append(r3_2, 1, 2, r3_2)
+
 	return []test{
 		{r1_1, r1_1, nil, false},
 		{r1_1, r1_2, nil, false},
@@ -139,6 +152,9 @@ func recursions() []test {
 
 		{r2_1, r2_1, nil, false},
 		{r2_1, r2_2, nil, false},
+
+		{r3_1, r3_1, nil, false},
+		{r3_1, r3_2, nil, false},
 	}
 }
 

@@ -39,7 +39,6 @@ func TestEqual_Customized(t *testing.T) {
 			t.Error("expected dt1 != dt2, got dt1 == dt2 with reflect.DeepEqual")
 		}
 
-		t.Skip("slice is not supported yet")
 		ds1 := []time.Time{d1, d1, d2}
 		ds2 := []time.Time{d2, d1, d1}
 		defaultTeq.NotEqual(t, ds1, ds2)
