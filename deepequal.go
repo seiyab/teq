@@ -88,7 +88,7 @@ var eqs = map[reflect.Kind]func(v1, v2 reflect.Value, nx next) bool{
 	reflect.Interface:  interfaceEq,
 	reflect.Pointer:    pointerEq,
 	reflect.Struct:     structEq,
-	reflect.Map:        todo,
+	reflect.Map:        mapEq,
 	reflect.Func:       todo,
 	reflect.Int:        intEq,
 	reflect.Int8:       intEq,
@@ -169,6 +169,26 @@ func pointerEq(v1, v2 reflect.Value, nx next) bool {
 func structEq(v1, v2 reflect.Value, nx next) bool {
 	for i, n := 0, v1.NumField(); i < n; i++ {
 		if !nx(field(v1, i), field(v2, i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func mapEq(v1, v2 reflect.Value, nx next) bool {
+	if v1.IsNil() != v2.IsNil() {
+		return false
+	}
+	if v1.Len() != v2.Len() {
+		return false
+	}
+	if v1.UnsafePointer() == v2.UnsafePointer() {
+		return true
+	}
+	for _, k := range v1.MapKeys() {
+		val1 := v1.MapIndex(k)
+		val2 := v2.MapIndex(k)
+		if !val1.IsValid() || !val2.IsValid() || !nx(val1, val2) {
 			return false
 		}
 	}

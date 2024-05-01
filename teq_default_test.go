@@ -26,6 +26,7 @@ func TestEqual(t *testing.T) {
 		{"primitives", primitives()},
 		{"structs", structs()},
 		{"slices", slices()},
+		{"maps", maps()},
 		{"recursions", recursions()},
 	}
 
@@ -108,6 +109,36 @@ func slices() []test {
 	return []test{
 		{[]int{1, 2}, []int{1, 2}, nil, false},
 		{[]int{1, 2}, []int{2, 1}, []string{"expected [1 2], got [2 1]"}, false},
+	}
+}
+
+func maps() []test {
+	return []test{
+		{map[string]int{"a": 1}, map[string]int{"a": 1}, nil, false},
+		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{"expected map[a:1], got map[a:2]"}, false},
+		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{"expected map[a:1], got map[b:1]"}, false},
+		{map[string]int{"a": 0}, map[string]int{}, []string{"expected map[a:0], got map[]"}, false},
+
+		{
+			map[int]map[string]int{
+				1: {"abc": 1},
+			},
+			map[int]map[string]int{
+				1: {"abc": 1},
+			},
+			nil,
+			false,
+		},
+		{
+			map[int]map[string]int{
+				1: {"abc": 1},
+			},
+			map[int]map[string]int{
+				1: {"abc": 2},
+			},
+			[]string{"expected map[1:map[abc:1]], got map[1:map[abc:2]]"},
+			false,
+		},
 	}
 }
 
