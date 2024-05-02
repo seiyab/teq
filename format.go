@@ -101,15 +101,17 @@ func todoFmt(v reflect.Value, next func(reflect.Value) []string) []string {
 }
 
 func sliceFmt(v reflect.Value, next func(reflect.Value) []string) []string {
+	open := fmt.Sprintf("[]%s{", v.Type().Elem().String())
+	close := "}"
 	if v.Len() == 0 {
-		return []string{"[]"}
+		return []string{open + close}
 	}
 	result := make([]string, 0, v.Len()+2)
-	result = append(result, "[")
+	result = append(result, open)
 	for i := 0; i < v.Len(); i++ {
 		result = append(result, indent(fmt.Sprintf("%s,", next(v.Index(i))[0])))
 	}
-	result = append(result, "]")
+	result = append(result, close)
 	return result
 }
 

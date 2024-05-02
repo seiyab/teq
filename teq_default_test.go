@@ -122,11 +122,11 @@ differences:
 --- expected
 +++ actual
 @@ -1,4 +1,4 @@
- [
+ []int{
 +  int(2),
    int(1),
 -  int(2),
- ]
+ }
 `}, false},
 	}
 }
