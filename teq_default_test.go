@@ -97,7 +97,16 @@ func structs() []test {
 
 	return []test{
 		{s{1}, s{1}, nil, false},
-		{s{1}, s{2}, []string{"expected {1}, got {2}"}, false},
+		{s{1}, s{2}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ teq_test.s{
+-  i: [int(1)],
++  i: [int(2)],
+ }
+`}, false},
 		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}, false},
 
 		{withPointer{ref(1)}, withPointer{ref(1)}, nil, false},
@@ -108,7 +117,17 @@ func structs() []test {
 func slices() []test {
 	return []test{
 		{[]int{1, 2}, []int{1, 2}, nil, false},
-		{[]int{1, 2}, []int{2, 1}, []string{"expected [1 2], got [2 1]"}, false},
+		{[]int{1, 2}, []int{2, 1}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,4 +1,4 @@
+ [
++  int(2),
+   int(1),
+-  int(2),
+ ]
+`}, false},
 	}
 }
 

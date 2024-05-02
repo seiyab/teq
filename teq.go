@@ -8,6 +8,7 @@ type Teq struct {
 	MaxDepth int
 
 	transforms map[reflect.Type]func(reflect.Value) reflect.Value
+	formats    map[reflect.Type]func(reflect.Value) string
 }
 
 func New() Teq {
@@ -27,7 +28,7 @@ func (teq Teq) Equal(t TestingT, expected, actual any) bool {
 	}()
 	ok := teq.equal(expected, actual)
 	if !ok {
-		t.Errorf("expected %v, got %v", expected, actual)
+		t.Errorf(teq.report(expected, actual))
 	}
 	return ok
 }
@@ -68,6 +69,27 @@ func (teq *Teq) AddTransform(transform any) {
 		return trValue.Call([]reflect.Value{v})[0]
 	}
 	teq.transforms[ty.In(0)] = reflectTransform
+}
+
+func (teq *Teq) AddFormat(format any) {
+	ty := reflect.TypeOf(format)
+	if ty.Kind() != reflect.Func {
+		panic("format must be a function")
+	}
+	if ty.NumIn() != 1 {
+		panic("format must have only one argument")
+	}
+	if ty.NumOut() != 1 {
+		panic("format must have only one return value")
+	}
+	if ty.Out(0).Kind() != reflect.String {
+		panic("format must return string")
+	}
+	formatValue := reflect.ValueOf(format)
+	reflectFormat := func(v reflect.Value) string {
+		return formatValue.Call([]reflect.Value{v})[0].String()
+	}
+	teq.formats[ty.In(0)] = reflectFormat
 }
 
 func (teq Teq) equal(x, y any) bool {
