@@ -24,7 +24,8 @@ func (teq Teq) report(expected, actual any) string {
 		k != reflect.Map &&
 		k != reflect.Slice &&
 		k != reflect.Array &&
-		k != reflect.String {
+		k != reflect.String &&
+		k != reflect.Pointer {
 		return simple
 	}
 	if k == reflect.String {
@@ -102,7 +103,7 @@ var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines
 	reflect.Array:      arrayFmt,
 	reflect.Slice:      sliceFmt,
 	reflect.Interface:  todoFmt,
-	reflect.Pointer:    todoFmt,
+	reflect.Pointer:    pointerFmt,
 	reflect.Struct:     structFmt,
 	reflect.Map:        mapFmt,
 	reflect.Func:       todoFmt,
@@ -160,6 +161,13 @@ func sliceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 	}
 	result = append(result, lineOf(close))
 	return result
+}
+
+func pointerFmt(v reflect.Value, next func(reflect.Value) lines) lines {
+	if v.IsNil() {
+		return linesOf("<nil>")
+	}
+	return next(v.Elem()).ledBy("*")
 }
 
 func structFmt(v reflect.Value, next func(reflect.Value) lines) lines {
