@@ -97,7 +97,16 @@ func structs() []test {
 
 	return []test{
 		{s{1}, s{1}, nil, false},
-		{s{1}, s{2}, []string{"expected {1}, got {2}"}, false},
+		{s{1}, s{2}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ teq_test.s{
+-  i: int(1),
++  i: int(2),
+ }
+`}, false},
 		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}, false},
 
 		{withPointer{ref(1)}, withPointer{ref(1)}, nil, false},
@@ -108,16 +117,53 @@ func structs() []test {
 func slices() []test {
 	return []test{
 		{[]int{1, 2}, []int{1, 2}, nil, false},
-		{[]int{1, 2}, []int{2, 1}, []string{"expected [1 2], got [2 1]"}, false},
+		{[]int{1, 2}, []int{2, 1}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,4 +1,4 @@
+ []int{
++  int(2),
+   int(1),
+-  int(2),
+ }
+`}, false},
 	}
 }
 
 func maps() []test {
 	return []test{
 		{map[string]int{"a": 1}, map[string]int{"a": 1}, nil, false},
-		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{"expected map[a:1], got map[a:2]"}, false},
-		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{"expected map[a:1], got map[b:1]"}, false},
-		{map[string]int{"a": 0}, map[string]int{}, []string{"expected map[a:0], got map[]"}, false},
+		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ map[string]int{
+-  "a": int(1),
++  "a": int(2),
+ }
+`}, false},
+		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ map[string]int{
+-  "a": int(1),
++  "b": int(1),
+ }
+`}, false},
+		{map[string]int{"a": 0}, map[string]int{}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1 @@
+-map[string]int{
+-  "a": int(0),
+-}
++map[string]int{}
+`}, false},
 
 		{
 			map[int]map[string]int{
@@ -136,7 +182,43 @@ func maps() []test {
 			map[int]map[string]int{
 				1: {"abc": 2},
 			},
-			[]string{"expected map[1:map[abc:1]], got map[1:map[abc:2]]"},
+			[]string{`not equal
+differences:
+--- expected
++++ actual
+@@ -2,3 +2,3 @@
+   int(1): map[string]int{
+-    "abc": int(1),
++    "abc": int(2),
+   },
+`},
+			false,
+		},
+		{
+			map[string]string{
+				"a": "1",
+				"b": "2",
+				"c": "3",
+				"d": "4",
+				"e": "5",
+			},
+			map[string]string{
+				"a": "1",
+				"b": "2",
+				"c": "10000",
+				"d": "4",
+				"e": "5",
+			},
+			[]string{`not equal
+differences:
+--- expected
++++ actual
+@@ -3,3 +3,3 @@
+   "b": "2",
+-  "c": "3",
++  "c": "10000",
+   "d": "4",
+`},
 			false,
 		},
 	}
