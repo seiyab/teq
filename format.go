@@ -99,7 +99,7 @@ func (teq Teq) format(v reflect.Value, depth int) lines {
 }
 
 var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines{
-	reflect.Array:      todoFmt,
+	reflect.Array:      arrayFmt,
 	reflect.Slice:      sliceFmt,
 	reflect.Interface:  todoFmt,
 	reflect.Pointer:    todoFmt,
@@ -127,6 +127,23 @@ var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines
 
 func todoFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 	return linesOf(fmt.Sprintf("<%s>", v.String()))
+}
+
+func arrayFmt(v reflect.Value, next func(reflect.Value) lines) lines {
+	open := fmt.Sprintf("%s{", v.Type().String())
+	close := "}"
+	if v.Len() == 0 {
+		return linesOf(open + close)
+	}
+	result := make(lines, 0, v.Len()+2)
+	result = append(result, lineOf(open))
+	for i := 0; i < v.Len(); i++ {
+		elem := next(v.Index(i)).followedBy(",")
+		result = append(result, elem.indent()...)
+	}
+	result = append(result, lineOf(close))
+	return result
+
 }
 
 func sliceFmt(v reflect.Value, next func(reflect.Value) lines) lines {

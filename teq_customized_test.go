@@ -49,7 +49,7 @@ func TestEqual_Customized(t *testing.T) {
 	})
 }
 
-func TestEqual_Format(t *testing.T) {
+func TestEqual_CustomizedFormat(t *testing.T) {
 	assert := teq.New()
 	assert.AddFormat(func(d time.Time) string {
 		return d.Format(time.RFC3339)
