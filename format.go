@@ -3,6 +3,7 @@ package teq
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/pmezard/go-difflib/difflib"
@@ -31,8 +32,8 @@ func (teq Teq) report(expected, actual any) string {
 	}
 
 	diff := difflib.UnifiedDiff{
-		A:        addLineBreak(teq.format(ve, 0)),
-		B:        addLineBreak(teq.format(va, 0)),
+		A:        teq.format(ve, 0).diffSequence(),
+		B:        teq.format(va, 0).diffSequence(),
 		FromFile: "expected",
 		ToFile:   "actual",
 		Context:  1,
@@ -51,31 +52,31 @@ func (teq Teq) report(expected, actual any) string {
 	}, "\n")
 }
 
-func (teq Teq) format(v reflect.Value, depth int) []string {
+func (teq Teq) format(v reflect.Value, depth int) lines {
 	if depth > teq.MaxDepth {
-		return []string{"<max depth exceeded>"}
+		return linesOf("<max depth exceeded>")
 	}
 	if !v.IsValid() {
-		return []string{"<invalid>"}
+		return linesOf("<invalid>")
 	}
 
 	fmtFn, ok := fmts[v.Kind()]
 	if !ok {
 		fmtFn = todoFmt
 	}
-	next := func(v reflect.Value) []string {
+	next := func(v reflect.Value) lines {
 		return teq.format(v, depth+1)
 	}
 	return fmtFn(v, next)
 }
 
-var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) []string) []string{
+var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines{
 	reflect.Array:      todoFmt,
 	reflect.Slice:      sliceFmt,
 	reflect.Interface:  todoFmt,
 	reflect.Pointer:    todoFmt,
 	reflect.Struct:     structFmt,
-	reflect.Map:        todoFmt,
+	reflect.Map:        mapFmt,
 	reflect.Func:       todoFmt,
 	reflect.Int:        intFmt,
 	reflect.Int8:       intFmt,
@@ -96,66 +97,91 @@ var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) []string) []
 	reflect.Complex128: complexFmt,
 }
 
-func todoFmt(v reflect.Value, next func(reflect.Value) []string) []string {
-	return []string{fmt.Sprintf("<%s>", v.String())}
+func todoFmt(v reflect.Value, next func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("<%s>", v.String()))
 }
 
-func sliceFmt(v reflect.Value, next func(reflect.Value) []string) []string {
+func sliceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 	open := fmt.Sprintf("[]%s{", v.Type().Elem().String())
 	close := "}"
 	if v.Len() == 0 {
-		return []string{open + close}
+		return linesOf(open + close)
 	}
-	result := make([]string, 0, v.Len()+2)
-	result = append(result, open)
+	result := make(lines, 0, v.Len()+2)
+	result = append(result, lineOf(open))
 	for i := 0; i < v.Len(); i++ {
-		result = append(result, indent(fmt.Sprintf("%s,", next(v.Index(i))[0])))
+		elem := next(v.Index(i)).followedBy(",")
+		result = append(result, elem.indent()...)
 	}
-	result = append(result, close)
+	result = append(result, lineOf(close))
 	return result
 }
 
-func structFmt(v reflect.Value, next func(reflect.Value) []string) []string {
-	open := fmt.Sprintf("%s{", v.Type())
+func structFmt(v reflect.Value, next func(reflect.Value) lines) lines {
+	open := fmt.Sprintf("%s{", v.Type().String())
 	close := "}"
 	if v.NumField() == 0 {
-		return []string{open + close}
+		return linesOf(open + close)
 	}
-	result := make([]string, 0, v.NumField()+2)
-	result = append(result, open)
+	result := make(lines, 0, v.NumField()+2)
+	result = append(result, lineOf(open))
 	for i := 0; i < v.NumField(); i++ {
-		result = append(result, indent(fmt.Sprintf("%s: %s,", v.Type().Field(i).Name, next(v.Field(i)))))
+		entry := next(v.Field(i)).
+			ledBy(v.Type().Field(i).Name + ": ").
+			followedBy(",")
+		result = append(result, entry.indent()...)
 	}
-	result = append(result, close)
+	result = append(result, lineOf(close))
 	return result
 }
 
-func intFmt(v reflect.Value, _ func(reflect.Value) []string) []string {
-	return []string{fmt.Sprintf("%s(%d)", v.Type(), v.Int())}
-}
-func uintFmt(v reflect.Value, _ func(reflect.Value) []string) []string {
-	return []string{fmt.Sprintf("%s(%d)", v.Type(), v.Uint())}
-}
-func stringFmt(v reflect.Value, _ func(reflect.Value) []string) []string {
-	return []string{v.String()}
-}
-func boolFmt(v reflect.Value, _ func(reflect.Value) []string) []string {
-	return []string{fmt.Sprintf("%t", v.Bool())}
-}
-func floatFmt(v reflect.Value, _ func(reflect.Value) []string) []string {
-	return []string{fmt.Sprintf("%s(%f)", v.Type(), v.Float())}
-}
-func complexFmt(v reflect.Value, _ func(reflect.Value) []string) []string {
-	return []string{fmt.Sprintf("%s(%f, %f)", v.Type(), real(v.Complex()), imag(v.Complex()))}
+func mapFmt(v reflect.Value, next func(reflect.Value) lines) lines {
+	open := fmt.Sprintf("map[%s]%s{", v.Type().Key(), v.Type().Elem())
+	close := "}"
+	if v.Len() == 0 {
+		return linesOf(open + close)
+	}
+	result := make(lines, 0, v.Len()+2)
+	result = append(result, lineOf(open))
+
+	type entry struct {
+		key   string
+		lines lines
+	}
+	entries := make([]entry, 0, v.Len())
+	for _, key := range v.MapKeys() {
+		var e entry
+		keyLines := next(key)
+		e.key = keyLines.key()
+		valLines := next(v.MapIndex(key))
+		e.lines = keyValue(keyLines, valLines)
+		entries = append(entries, e)
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].key < entries[j].key
+	})
+	for _, e := range entries {
+		result = append(result, e.lines.indent()...)
+	}
+	result = append(result, lineOf(close))
+	return result
 }
 
-func indent(s string) string {
-	return fmt.Sprintf("  %s", s)
+func intFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%s(%d)", v.Type(), v.Int()))
 }
-func addLineBreak(ss []string) []string {
-	result := make([]string, 0, len(ss))
-	for _, s := range ss {
-		result = append(result, fmt.Sprintf("%s\n", s))
-	}
-	return result
+func uintFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%s(%d)", v.Type(), v.Uint()))
+}
+func stringFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%q", v.String()))
+}
+func boolFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%t", v.Bool()))
+}
+func floatFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%s(%f)", v.Type(), v.Float()))
+}
+func complexFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%s(%f, %f)", v.Type(), real(v.Complex()), imag(v.Complex())))
 }

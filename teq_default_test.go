@@ -103,8 +103,8 @@ differences:
 +++ actual
 @@ -1,3 +1,3 @@
  teq_test.s{
--  i: [int(1)],
-+  i: [int(2)],
+-  i: int(1),
++  i: int(2),
  }
 `}, false},
 		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}, false},
@@ -134,9 +134,36 @@ differences:
 func maps() []test {
 	return []test{
 		{map[string]int{"a": 1}, map[string]int{"a": 1}, nil, false},
-		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{"expected map[a:1], got map[a:2]"}, false},
-		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{"expected map[a:1], got map[b:1]"}, false},
-		{map[string]int{"a": 0}, map[string]int{}, []string{"expected map[a:0], got map[]"}, false},
+		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ map[string]int{
+-  "a": int(1),
++  "a": int(2),
+ }
+`}, false},
+		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ map[string]int{
+-  "a": int(1),
++  "b": int(1),
+ }
+`}, false},
+		{map[string]int{"a": 0}, map[string]int{}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1 @@
+-map[string]int{
+-  "a": int(0),
+-}
++map[string]int{}
+`}, false},
 
 		{
 			map[int]map[string]int{
@@ -155,7 +182,16 @@ func maps() []test {
 			map[int]map[string]int{
 				1: {"abc": 2},
 			},
-			[]string{"expected map[1:map[abc:1]], got map[1:map[abc:2]]"},
+			[]string{`not equal
+differences:
+--- expected
++++ actual
+@@ -2,3 +2,3 @@
+   int(1): map[string]int{
+-    "abc": int(1),
++    "abc": int(2),
+   },
+`},
 			false,
 		},
 	}
