@@ -194,6 +194,33 @@ differences:
 `},
 			false,
 		},
+		{
+			map[string]string{
+				"a": "1",
+				"b": "2",
+				"c": "3",
+				"d": "4",
+				"e": "5",
+			},
+			map[string]string{
+				"a": "1",
+				"b": "2",
+				"c": "10000",
+				"d": "4",
+				"e": "5",
+			},
+			[]string{`not equal
+differences:
+--- expected
++++ actual
+@@ -3,3 +3,3 @@
+   "b": "2",
+-  "c": "3",
++  "c": "10000",
+   "d": "4",
+`},
+			false,
+		},
 	}
 }
 
