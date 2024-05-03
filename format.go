@@ -27,29 +27,52 @@ func (teq Teq) report(expected, actual any) string {
 		k != reflect.String {
 		return simple
 	}
-	if k == reflect.String && len(ve.String()) < 10 && len(va.String()) < 10 {
-		return simple
+	if k == reflect.String {
+		if len(ve.String()) < 10 && len(va.String()) < 10 {
+			return simple
+		}
+		if strings.Contains(ve.String(), "\n") || strings.Contains(va.String(), "\n") {
+			r, ok := richReport(
+				difflib.SplitLines(ve.String()),
+				difflib.SplitLines(va.String()),
+			)
+			if !ok {
+				return simple
+			}
+			return r
+		}
 	}
 
+	r, ok := richReport(
+		teq.format(ve, 0).diffSequence(),
+		teq.format(va, 0).diffSequence(),
+	)
+	if !ok {
+		return simple
+	}
+	return r
+}
+
+func richReport(a []string, b []string) (string, bool) {
 	diff := difflib.UnifiedDiff{
-		A:        teq.format(ve, 0).diffSequence(),
-		B:        teq.format(va, 0).diffSequence(),
+		A:        a,
+		B:        b,
 		FromFile: "expected",
 		ToFile:   "actual",
 		Context:  1,
 	}
 	diffTxt, err := difflib.GetUnifiedDiffString(diff)
 	if err != nil {
-		return fmt.Sprintf("failed to get diff: %v", err)
+		return fmt.Sprintf("failed to get diff: %v", err), false
 	}
 	if diffTxt == "" {
-		return simple
+		return "", false
 	}
 	return strings.Join([]string{
 		"not equal",
 		"differences:",
 		diffTxt,
-	}, "\n")
+	}, "\n"), true
 }
 
 func (teq Teq) format(v reflect.Value, depth int) lines {
