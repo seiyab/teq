@@ -16,6 +16,7 @@ func New() Teq {
 		MaxDepth: 1_000,
 
 		transforms: make(map[reflect.Type]func(reflect.Value) reflect.Value),
+		formats:    make(map[reflect.Type]func(reflect.Value) string),
 	}
 }
 

@@ -60,6 +60,11 @@ func (teq Teq) format(v reflect.Value, depth int) lines {
 		return linesOf("<invalid>")
 	}
 
+	ty := v.Type()
+	if fm, ok := teq.formats[ty]; ok {
+		return linesOf(fm(v))
+	}
+
 	fmtFn, ok := fmts[v.Kind()]
 	if !ok {
 		fmtFn = todoFmt
