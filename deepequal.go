@@ -6,6 +6,7 @@ package teq
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -85,11 +86,12 @@ type next func(v1, v2 reflect.Value) bool
 var eqs = map[reflect.Kind]func(v1, v2 reflect.Value, nx next) bool{
 	reflect.Array:      arrayEq,
 	reflect.Slice:      sliceEq,
+	reflect.Chan:       todo,
 	reflect.Interface:  interfaceEq,
 	reflect.Pointer:    pointerEq,
 	reflect.Struct:     structEq,
 	reflect.Map:        mapEq,
-	reflect.Func:       todo,
+	reflect.Func:       funcEq,
 	reflect.Int:        intEq,
 	reflect.Int8:       intEq,
 	reflect.Int16:      intEq,
@@ -118,7 +120,7 @@ func hard(k reflect.Kind) bool {
 }
 
 func todo(v1, v2 reflect.Value, nx next) bool {
-	panic("not implemented")
+	panic(fmt.Sprintf("not implemented (%s, %s)", v1.Type(), v1.Kind()))
 }
 
 func arrayEq(v1, v2 reflect.Value, nx next) bool {
@@ -193,6 +195,14 @@ func mapEq(v1, v2 reflect.Value, nx next) bool {
 		}
 	}
 	return true
+}
+
+func funcEq(v1, v2 reflect.Value, _ next) bool {
+	if v1.IsNil() && v2.IsNil() {
+		return true
+	}
+	// Can't do better than this:
+	return false
 }
 
 func intEq(v1, v2 reflect.Value, _ next) bool     { return v1.Int() == v2.Int() }

@@ -89,7 +89,6 @@ differences:
 		})
 
 		t.Run("pointer of struct", func(t *testing.T) {
-			t.Skip()
 			mt := &mockT{}
 			assert.Equal(mt, &http.Client{Timeout: time.Second}, http.DefaultClient)
 
@@ -100,9 +99,10 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -1 +1 @@
-- Timeout: time.Duration(0),
-+ Timeout: 1s,
+@@ -4,3 +4,3 @@
+   Jar: http.CookieJar(<nil>),
+-  Timeout: time.Duration(1000000000),
++  Timeout: time.Duration(0),
  }
 `
 			if mt.errors[0] != expected {

@@ -106,7 +106,7 @@ var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines
 	reflect.Pointer:    pointerFmt,
 	reflect.Struct:     structFmt,
 	reflect.Map:        mapFmt,
-	reflect.Func:       todoFmt,
+	reflect.Func:       funcFmt,
 	reflect.Int:        intFmt,
 	reflect.Int8:       intFmt,
 	reflect.Int16:      intFmt,
@@ -227,6 +227,10 @@ func mapFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 	}
 	result = append(result, lineOf(close))
 	return result
+}
+
+func funcFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	return linesOf(fmt.Sprintf("%s(%v)", v.Type(), v.Pointer()))
 }
 
 func intFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
