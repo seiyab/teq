@@ -102,7 +102,7 @@ func (teq Teq) format(v reflect.Value, depth int) lines {
 var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines{
 	reflect.Array:      arrayFmt,
 	reflect.Slice:      sliceFmt,
-	reflect.Interface:  todoFmt,
+	reflect.Interface:  interfaceFmt,
 	reflect.Pointer:    pointerFmt,
 	reflect.Struct:     structFmt,
 	reflect.Map:        mapFmt,
@@ -161,6 +161,15 @@ func sliceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 	}
 	result = append(result, lineOf(close))
 	return result
+}
+
+func interfaceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
+	open := fmt.Sprintf("%s(", v.Type().String())
+	close := ")"
+	if v.IsNil() {
+		return linesOf(open + "<nil>" + close)
+	}
+	return next(v.Elem()).ledBy(open).followedBy(close)
 }
 
 func pointerFmt(v reflect.Value, next func(reflect.Value) lines) lines {
