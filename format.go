@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"unsafe"
 
 	"github.com/pmezard/go-difflib/difflib"
 )
@@ -45,8 +46,8 @@ func (teq Teq) report(expected, actual any) string {
 	}
 
 	r, ok := richReport(
-		teq.format(ve, 0).diffSequence(),
-		teq.format(va, 0).diffSequence(),
+		teq.format(ve, make(map[fmtVisit]bool), 0).diffSequence(),
+		teq.format(va, make(map[fmtVisit]bool), 0).diffSequence(),
 	)
 	if !ok {
 		return simple
@@ -76,12 +77,33 @@ func richReport(a []string, b []string) (string, bool) {
 	}, "\n"), true
 }
 
-func (teq Teq) format(v reflect.Value, depth int) lines {
+type fmtVisit struct {
+	a   unsafe.Pointer
+	typ reflect.Type
+}
+
+func (teq Teq) format(v reflect.Value, visited map[fmtVisit]bool, depth int) lines {
 	if depth > teq.MaxDepth {
 		return linesOf("<max depth exceeded>")
 	}
 	if !v.IsValid() {
 		return linesOf("<invalid>")
+	}
+
+	if hard(v.Kind()) {
+		if v.CanAddr() {
+			addr := v.Addr().UnsafePointer()
+
+			// If references are already seen.
+			typ := v.Type()
+			v := fmtVisit{addr, typ}
+			if visited[v] {
+				return linesOf("<cyclic>")
+			}
+
+			// Remember for later.
+			visited[v] = true
+		}
 	}
 
 	ty := v.Type()
@@ -94,7 +116,7 @@ func (teq Teq) format(v reflect.Value, depth int) lines {
 		fmtFn = todoFmt
 	}
 	next := func(v reflect.Value) lines {
-		return teq.format(v, depth+1)
+		return teq.format(v, visited, depth+1)
 	}
 	return fmtFn(v, next)
 }

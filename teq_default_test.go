@@ -10,10 +10,9 @@ import (
 )
 
 type test struct {
-	a             any
-	b             any
-	expected      []string
-	pendingFormat bool // for development. we don't have stable format yet.
+	a        any
+	b        any
+	expected []string
 }
 
 type group struct {
@@ -50,13 +49,11 @@ func TestEqual(t *testing.T) {
 						t.Fatalf("expected %d errors, got %d", len(test.expected), len(mt.errors))
 					}
 
-					if !test.pendingFormat {
-						for i, e := range test.expected {
-							if mt.errors[i] != e {
-								t.Errorf("expected %q, got %q at i = %d", e, mt.errors[i], i)
-							}
-							assert.Equal(t, e, mt.errors[i])
+					for i, e := range test.expected {
+						if mt.errors[i] != e {
+							t.Errorf("expected %q, got %q at i = %d", e, mt.errors[i], i)
 						}
+						assert.Equal(t, e, mt.errors[i])
 					}
 
 					{
@@ -75,16 +72,16 @@ func TestEqual(t *testing.T) {
 
 func primitives() []test {
 	return []test{
-		{1, 1, nil, false},
-		{1, 2, []string{"expected 1, got 2"}, false},
-		{uint8(1), uint8(1), nil, false},
-		{uint8(1), uint8(2), []string{"expected 1, got 2"}, false},
-		{1.5, 1.5, nil, false},
-		{1.5, 2.5, []string{"expected 1.5, got 2.5"}, false},
-		{"a", "a", nil, false},
-		{"a", "b", []string{"expected a, got b"}, false},
+		{1, 1, nil},
+		{1, 2, []string{"expected 1, got 2"}},
+		{uint8(1), uint8(1), nil},
+		{uint8(1), uint8(2), []string{"expected 1, got 2"}},
+		{1.5, 1.5, nil},
+		{1.5, 2.5, []string{"expected 1.5, got 2.5"}},
+		{"a", "a", nil},
+		{"a", "b", []string{"expected a, got b"}},
 
-		{"a", 1, []string{"expected a, got 1"}, false},
+		{"a", 1, []string{"expected a, got 1"}},
 	}
 }
 
@@ -101,7 +98,7 @@ func structs() []test {
 	}
 
 	return []test{
-		{s{1}, s{1}, nil, false},
+		{s{1}, s{1}, nil},
 		{s{1}, s{2}, []string{`not equal
 differences:
 --- expected
@@ -111,17 +108,26 @@ differences:
 -  i: int(1),
 +  i: int(2),
  }
-`}, false},
-		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}, false},
+`}},
+		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}},
 
-		{withPointer{ref(1)}, withPointer{ref(1)}, nil, false},
-		{withPointer{ref(1)}, withPointer{ref(2)}, []string{"expected {1}, got {2}"}, true},
+		{withPointer{ref(1)}, withPointer{ref(1)}, nil},
+		{withPointer{ref(1)}, withPointer{ref(2)}, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ teq_test.withPointer{
+-  i: *int(1),
++  i: *int(2),
+ }
+`}},
 	}
 }
 
 func slices() []test {
 	return []test{
-		{[]int{1, 2}, []int{1, 2}, nil, false},
+		{[]int{1, 2}, []int{1, 2}, nil},
 		{[]int{1, 2}, []int{2, 1}, []string{`not equal
 differences:
 --- expected
@@ -132,7 +138,7 @@ differences:
    int(1),
 -  int(2),
  }
-`}, false},
+`}},
 		{io.Reader(bytes.NewBuffer([]byte("a"))), io.Reader(bytes.NewBuffer(nil)), []string{
 			`not equal
 differences:
@@ -146,13 +152,13 @@ differences:
 +  buf: []uint8{},
    off: int(0),
 `,
-		}, false},
+		}},
 	}
 }
 
 func maps() []test {
 	return []test{
-		{map[string]int{"a": 1}, map[string]int{"a": 1}, nil, false},
+		{map[string]int{"a": 1}, map[string]int{"a": 1}, nil},
 		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{`not equal
 differences:
 --- expected
@@ -162,7 +168,7 @@ differences:
 -  "a": int(1),
 +  "a": int(2),
  }
-`}, false},
+`}},
 		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{`not equal
 differences:
 --- expected
@@ -172,7 +178,7 @@ differences:
 -  "a": int(1),
 +  "b": int(1),
  }
-`}, false},
+`}},
 		{map[string]int{"a": 0}, map[string]int{}, []string{`not equal
 differences:
 --- expected
@@ -182,7 +188,7 @@ differences:
 -  "a": int(0),
 -}
 +map[string]int{}
-`}, false},
+`}},
 
 		{
 			map[int]map[string]int{
@@ -192,7 +198,6 @@ differences:
 				1: {"abc": 1},
 			},
 			nil,
-			false,
 		},
 		{
 			map[int]map[string]int{
@@ -211,7 +216,6 @@ differences:
 +    "abc": int(2),
    },
 `},
-			false,
 		},
 		{
 			map[string]string{
@@ -238,7 +242,6 @@ differences:
 +  "c": "10000",
    "d": "4",
 `},
-			false,
 		},
 	}
 }
@@ -249,7 +252,6 @@ func interfaces() []test {
 			[]io.Reader{io.Reader(bytes.NewBuffer([]byte("a")))},
 			[]io.Reader{io.Reader(bytes.NewBuffer([]byte("a")))},
 			nil,
-			false,
 		},
 		{
 			[]io.Reader{
@@ -279,7 +281,7 @@ differences:
 -  }),
 +  io.Reader(<nil>),
  }
-`}, false},
+`}},
 	}
 }
 
@@ -287,9 +289,9 @@ func channels() []test {
 	c1 := make(chan int)
 	c2 := make(chan int)
 	return []test{
-		{c1, c1, nil, false},
-		{c1, c2, []string{fmt.Sprintf("expected %p, got %p", c1, c2)}, false},
-		{[]chan int{c1}, []chan int{c1}, nil, false},
+		{c1, c1, nil},
+		{c1, c2, []string{fmt.Sprintf("expected %p, got %p", c1, c2)}},
+		{[]chan int{c1}, []chan int{c1}, nil},
 		{[]chan int{c1}, []chan int{c2}, []string{fmt.Sprintf(`not equal
 differences:
 --- expected
@@ -299,7 +301,7 @@ differences:
 -  chan int(%p),
 +  chan int(%p),
  }
-`, c1, c2)}, false},
+`, c1, c2)}},
 		{[]chan int{c1}, []chan int{nil}, []string{fmt.Sprintf(`not equal
 differences:
 --- expected
@@ -309,7 +311,7 @@ differences:
 -  chan int(%p),
 +  chan int(<nil>),
  }
-`, c1)}, false},
+`, c1)}},
 	}
 }
 
@@ -346,17 +348,29 @@ func recursions() []test {
 	r3_2 = append(r3_2, 1, 2, r3_2)
 
 	return []test{
-		{r1_1, r1_1, nil, false},
-		{r1_1, r1_2, nil, false},
-		{r1_1, r1_3, []string{"expected {1, <cyclic>}, got {2, <cyclic>}"}, true},
-		{r1_4, r1_5, nil, false},
-		{r1_4, r1_6, nil, false},
+		{r1_1, r1_1, nil},
+		{r1_1, r1_2, nil},
+		{r1_1, r1_3, []string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,5 +1,5 @@
+ teq_test.privateRecursiveStruct{
+-  i: int(1),
++  i: int(2),
+   r: *teq_test.privateRecursiveStruct{
+-    i: int(1),
++    i: int(2),
+     r: *<cyclic>,
+`}},
+		{r1_4, r1_5, nil},
+		{r1_4, r1_6, nil},
 
-		{r2_1, r2_1, nil, false},
-		{r2_1, r2_2, nil, false},
+		{r2_1, r2_1, nil},
+		{r2_1, r2_2, nil},
 
-		{r3_1, r3_1, nil, false},
-		{r3_1, r3_2, nil, false},
+		{r3_1, r3_1, nil},
+		{r3_1, r3_2, nil},
 	}
 }
 
