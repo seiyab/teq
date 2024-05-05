@@ -30,6 +30,7 @@ func TestEqual(t *testing.T) {
 		{"slices", slices()},
 		{"maps", maps()},
 		{"interfaces", interfaces()},
+		{"channels", channels()},
 		{"recursions", recursions()},
 	}
 
@@ -279,6 +280,36 @@ differences:
 +  io.Reader(<nil>),
  }
 `}, false},
+	}
+}
+
+func channels() []test {
+	c1 := make(chan int)
+	c2 := make(chan int)
+	return []test{
+		{c1, c1, nil, false},
+		{c1, c2, []string{fmt.Sprintf("expected %p, got %p", c1, c2)}, false},
+		{[]chan int{c1}, []chan int{c1}, nil, false},
+		{[]chan int{c1}, []chan int{c2}, []string{fmt.Sprintf(`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ []chan int{
+-  chan int(%p),
++  chan int(%p),
+ }
+`, c1, c2)}, false},
+		{[]chan int{c1}, []chan int{nil}, []string{fmt.Sprintf(`not equal
+differences:
+--- expected
++++ actual
+@@ -1,3 +1,3 @@
+ []chan int{
+-  chan int(%p),
++  chan int(<nil>),
+ }
+`, c1)}, false},
 	}
 }
 
