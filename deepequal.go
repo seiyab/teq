@@ -6,7 +6,6 @@ package teq
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -73,7 +72,7 @@ func (teq Teq) deepValueEqual(
 
 	eqFn, ok := eqs[v1.Kind()]
 	if !ok {
-		panic("not implemented")
+		panic("equality is not defined for " + v1.Type().String())
 	}
 	var n next = func(v1, v2 reflect.Value) bool {
 		return teq.deepValueEqual(v1, v2, visited, depth+1)
@@ -86,7 +85,7 @@ type next func(v1, v2 reflect.Value) bool
 var eqs = map[reflect.Kind]func(v1, v2 reflect.Value, nx next) bool{
 	reflect.Array:      arrayEq,
 	reflect.Slice:      sliceEq,
-	reflect.Chan:       todo,
+	reflect.Chan:       chanEq,
 	reflect.Interface:  interfaceEq,
 	reflect.Pointer:    pointerEq,
 	reflect.Struct:     structEq,
@@ -119,10 +118,6 @@ func hard(k reflect.Kind) bool {
 	return false
 }
 
-func todo(v1, v2 reflect.Value, nx next) bool {
-	panic(fmt.Sprintf("not implemented (%s, %s)", v1.Type(), v1.Kind()))
-}
-
 func arrayEq(v1, v2 reflect.Value, nx next) bool {
 	for i := 0; i < v1.Len(); i++ {
 		if !nx(v1.Index(i), v2.Index(i)) {
@@ -152,6 +147,16 @@ func sliceEq(v1, v2 reflect.Value, nx next) bool {
 		}
 	}
 	return true
+}
+
+func chanEq(v1, v2 reflect.Value, _ next) bool {
+	if v1.CanInterface() && v2.CanInterface() {
+		return v1.Interface() == v2.Interface()
+	}
+	if v1.CanInterface() != v2.CanInterface() {
+		return false
+	}
+	panic("failed to compare channels")
 }
 
 func interfaceEq(v1, v2 reflect.Value, nx next) bool {

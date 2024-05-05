@@ -102,6 +102,7 @@ func (teq Teq) format(v reflect.Value, depth int) lines {
 var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines{
 	reflect.Array:      arrayFmt,
 	reflect.Slice:      sliceFmt,
+	reflect.Chan:       chanFmt,
 	reflect.Interface:  interfaceFmt,
 	reflect.Pointer:    pointerFmt,
 	reflect.Struct:     structFmt,
@@ -161,6 +162,13 @@ func sliceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 	}
 	result = append(result, lineOf(close))
 	return result
+}
+
+func chanFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
+	if v.IsNil() {
+		return linesOf(fmt.Sprintf("%s(<nil>)", v.Type()))
+	}
+	return linesOf(fmt.Sprintf("%s(0x%x)", v.Type(), v.Pointer()))
 }
 
 func interfaceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
@@ -230,7 +238,10 @@ func mapFmt(v reflect.Value, next func(reflect.Value) lines) lines {
 }
 
 func funcFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%s(%v)", v.Type(), v.Pointer()))
+	if v.IsNil() {
+		return linesOf(fmt.Sprintf("%s(<nil>)", v.Type()))
+	}
+	return linesOf(fmt.Sprintf("%s(0x%x)", v.Type(), v.Pointer()))
 }
 
 func intFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
