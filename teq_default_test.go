@@ -1,7 +1,9 @@
 package teq_test
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/seiyab/teq"
@@ -27,6 +29,7 @@ func TestEqual(t *testing.T) {
 		{"structs", structs()},
 		{"slices", slices()},
 		{"maps", maps()},
+		{"interfaces", interfaces()},
 		{"recursions", recursions()},
 	}
 
@@ -51,6 +54,7 @@ func TestEqual(t *testing.T) {
 							if mt.errors[i] != e {
 								t.Errorf("expected %q, got %q at i = %d", e, mt.errors[i], i)
 							}
+							assert.Equal(t, e, mt.errors[i])
 						}
 					}
 
@@ -128,6 +132,20 @@ differences:
 -  int(2),
  }
 `}, false},
+		{io.Reader(bytes.NewBuffer([]byte("a"))), io.Reader(bytes.NewBuffer(nil)), []string{
+			`not equal
+differences:
+--- expected
++++ actual
+@@ -1,5 +1,3 @@
+ *bytes.Buffer{
+-  buf: []uint8{
+-    uint8(97),
+-  },
++  buf: []uint8{},
+   off: int(0),
+`,
+		}, false},
 	}
 }
 
@@ -221,6 +239,46 @@ differences:
 `},
 			false,
 		},
+	}
+}
+
+func interfaces() []test {
+	return []test{
+		{
+			[]io.Reader{io.Reader(bytes.NewBuffer([]byte("a")))},
+			[]io.Reader{io.Reader(bytes.NewBuffer([]byte("a")))},
+			nil,
+			false,
+		},
+		{
+			[]io.Reader{
+				bytes.NewBuffer([]byte("a")),
+				bytes.NewBuffer([]byte("b")),
+			},
+			[]io.Reader{nil},
+			[]string{`not equal
+differences:
+--- expected
++++ actual
+@@ -1,16 +1,3 @@
+ []io.Reader{
+-  io.Reader(*bytes.Buffer{
+-    buf: []uint8{
+-      uint8(97),
+-    },
+-    off: int(0),
+-    lastRead: bytes.readOp(0),
+-  }),
+-  io.Reader(*bytes.Buffer{
+-    buf: []uint8{
+-      uint8(98),
+-    },
+-    off: int(0),
+-    lastRead: bytes.readOp(0),
+-  }),
++  io.Reader(<nil>),
+ }
+`}, false},
 	}
 }
 
