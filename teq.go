@@ -4,13 +4,16 @@ import (
 	"reflect"
 )
 
+// Teq is a object for deep equality comparison.
 type Teq struct {
+	// MaxDepth is the maximum depth of the comparison. Default is 1000.
 	MaxDepth int
 
 	transforms map[reflect.Type]func(reflect.Value) reflect.Value
 	formats    map[reflect.Type]func(reflect.Value) string
 }
 
+// New returns new instance of Teq.
 func New() Teq {
 	return Teq{
 		MaxDepth: 1_000,
@@ -20,6 +23,7 @@ func New() Teq {
 	}
 }
 
+// Equal perform deep equality check and report error if not equal.
 func (teq Teq) Equal(t TestingT, expected, actual any) bool {
 	t.Helper()
 	defer func() {
@@ -34,6 +38,7 @@ func (teq Teq) Equal(t TestingT, expected, actual any) bool {
 	return ok
 }
 
+// NotEqual perform deep equality check and report error if equal.
 func (teq Teq) NotEqual(t TestingT, expected, actual any) bool {
 	t.Helper()
 	defer func() {
@@ -54,6 +59,12 @@ func (teq Teq) NotEqual(t TestingT, expected, actual any) bool {
 
 }
 
+// AddTransform adds a transform function to Teq.
+// The transform function must have only one argument and one return value.
+// The argument type is the type to be transformed.
+// If the passed transform function is not valid, it will panic.
+// The transformed value will be used for equality check instead of the original value.
+// The transformed value and its internal values won't be transformed to prevent infinite recursion.
 func (teq *Teq) AddTransform(transform any) {
 	ty := reflect.TypeOf(transform)
 	if ty.Kind() != reflect.Func {
@@ -72,6 +83,11 @@ func (teq *Teq) AddTransform(transform any) {
 	teq.transforms[ty.In(0)] = reflectTransform
 }
 
+// AddFormat adds a format function to Teq.
+// The format function must have only one argument and one return value.
+// The argument type is the type to be formatted.
+// If the passed format function is not valid, it will panic.
+// The formatted string will be shown instead of the original value in the error report when the values are not equal.
 func (teq *Teq) AddFormat(format any) {
 	ty := reflect.TypeOf(format)
 	if ty.Kind() != reflect.Func {
