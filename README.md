@@ -54,7 +54,7 @@ func NewTeq() teq.Teq {
     return tq
 }
 
-// then you can use easily it everywhere
+// then you can easily use it everywhere
 tq := NewTeq()
 ```
 
