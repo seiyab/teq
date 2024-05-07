@@ -11,6 +11,7 @@ type Teq struct {
 
 	transforms map[reflect.Type]func(reflect.Value) reflect.Value
 	formats    map[reflect.Type]func(reflect.Value) string
+	equals     map[reflect.Type]func(reflect.Value, reflect.Value) bool
 }
 
 // New returns new instance of Teq.
@@ -20,6 +21,7 @@ func New() Teq {
 
 		transforms: make(map[reflect.Type]func(reflect.Value) reflect.Value),
 		formats:    make(map[reflect.Type]func(reflect.Value) string),
+		equals:     make(map[reflect.Type]func(reflect.Value, reflect.Value) bool),
 	}
 }
 
@@ -107,6 +109,34 @@ func (teq *Teq) AddFormat(format any) {
 		return formatValue.Call([]reflect.Value{v})[0].String()
 	}
 	teq.formats[ty.In(0)] = reflectFormat
+}
+
+// AddEqual adds an equal function to Teq.
+// The equal function must have two arguments with the same type and one return value of bool.
+// If the passed equal function is not valid, it will panic.
+// The equal function will be used for equality check instead of the default equality check.
+func (teq *Teq) AddEqual(equal any) {
+	ty := reflect.TypeOf(equal)
+	if ty.Kind() != reflect.Func {
+		panic("equal must be a function")
+	}
+	if ty.NumIn() != 2 {
+		panic("equal must have two arguments")
+	}
+	if ty.In(0) != ty.In(1) {
+		panic("equal must have two arguments with the same type")
+	}
+	if ty.NumOut() != 1 {
+		panic("equal must have only one return value")
+	}
+	if ty.Out(0).Kind() != reflect.Bool {
+		panic("equal must return bool")
+	}
+	equalValue := reflect.ValueOf(equal)
+	reflectEqual := func(v1, v2 reflect.Value) bool {
+		return equalValue.Call([]reflect.Value{v1, v2})[0].Bool()
+	}
+	teq.equals[ty.In(0)] = reflectEqual
 }
 
 func (teq Teq) equal(x, y any) bool {
