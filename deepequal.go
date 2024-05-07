@@ -35,6 +35,11 @@ func (teq Teq) deepValueEqual(
 		return false
 	}
 
+	eq, ok := teq.equals[v1.Type()]
+	if ok {
+		return eq(v1, v2)
+	}
+
 	tr, ok := teq.transforms[v1.Type()]
 	if ok {
 		t1 := tr(v1)

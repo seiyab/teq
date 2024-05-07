@@ -1,6 +1,7 @@
 package teq_test
 
 import (
+	"math"
 	"reflect"
 	"testing"
 	"time"
@@ -46,6 +47,43 @@ func TestEqual_Customized(t *testing.T) {
 		if reflect.DeepEqual(ds1, ds2) {
 			t.Error("expected ds1 != ds2, got ds1 == ds2 with reflect.DeepEqual")
 		}
+	})
+
+	t.Run("AddEqual", func(t *testing.T) {
+		t.Run("float64", func(t *testing.T) {
+			d := teq.New()
+			c := teq.New()
+			c.AddEqual(func(a, b float64) bool {
+				const epsilon = 1e-3
+				return math.Abs(a-b) < epsilon
+			})
+
+			d.NotEqual(t, 1.0, 1.001)
+			c.Equal(t, 1.0, 1.001)
+			c.NotEqual(t, 1.0, 1.002)
+
+			d.NotEqual(t, float32(1.0), float32(1.001))
+			c.NotEqual(t, float32(1.0), float32(1.001))
+
+			d.NotEqual(t, []float64{1.0, 1.0, 1.001}, []float64{1.001, 1.0, 1.0})
+			c.Equal(t, []float64{1.0, 1.0, 1.001}, []float64{1.001, 1.0, 1.0})
+		})
+
+		t.Run("time.Time", func(t *testing.T) {
+			d := teq.New()
+			c := teq.New()
+			c.AddEqual(func(a, b time.Time) bool {
+				return a.Equal(b)
+			})
+
+			secondsEastOfUTC := int((8 * time.Hour).Seconds())
+			beijing := time.FixedZone("Beijing Time", secondsEastOfUTC)
+			d1 := time.Date(2000, 2, 1, 12, 30, 0, 0, time.UTC)
+			d2 := time.Date(2000, 2, 1, 20, 30, 0, 0, beijing)
+
+			d.NotEqual(t, d1, d2)
+			c.Equal(t, d1, d2)
+		})
 	})
 }
 
