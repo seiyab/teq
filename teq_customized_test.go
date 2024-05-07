@@ -178,6 +178,31 @@ differences:
 		}
 		assert.Equal(t, []string{expected}, mt.errors)
 	})
+
+	t.Run("reflect.Kind", func(t *testing.T) {
+		tq := teq.New()
+		tq.AddFormat(func(kind reflect.Kind) string {
+			return kind.String()
+		})
+
+		mt := &mockT{}
+		tq.Equal(mt, reflect.Int, reflect.String)
+		if len(mt.errors) != 1 {
+			t.Fatalf("expected 1 error, got %d", len(mt.errors))
+		}
+		expected := `not equal
+differences:
+--- expected
++++ actual
+@@ -1 +1 @@
+-int
++string
+`
+		if mt.errors[0] != expected {
+			t.Errorf("expected %q, got %q", expected, mt.errors[0])
+		}
+		assert.Equal(t, expected, mt.errors[0])
+	})
 }
 
 func utc(d time.Time) time.Time {

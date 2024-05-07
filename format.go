@@ -21,7 +21,9 @@ func (teq Teq) report(expected, actual any) string {
 		return simple
 	}
 	k := ve.Kind()
-	if k != reflect.Struct &&
+	_, ok := teq.formats[ve.Type()]
+	if !ok &&
+		k != reflect.Struct &&
 		k != reflect.Map &&
 		k != reflect.Slice &&
 		k != reflect.Array &&
