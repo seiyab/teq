@@ -7,6 +7,7 @@ teq is a Go library designed to enhance your testing experience by providing a f
 ## Features
 
 - Transforms: Register a "transform" function that can modify objects before comparison. This allows you to control how equality is determined. For example, by transforming time.Time objects to UTC, you can make your equality checks timezone-insensitive.
+- Equals: Register a "equals" function that defines equality. For example, you can allow specific absolute error for float64.
 - Formats: Register a "format" function that defines how objects are displayed when they are not equal. This is useful for types like time.Time and decimal.Decimal that may not be human-readable in their default format. By registering your own format, you can make the output of your tests more understandable.
 
 ## Installation
@@ -34,6 +35,12 @@ tq.AddTransform(func(d time.Time) time.Time {
 // time.Time will be shown in RFC3339 format when it appear in diff.
 tq.AddFormat(func(d time.Time) string {
     return d.Format(time.RFC3339)
+})
+
+// Absolute error up to 1e-3 is allowed.
+tq.AddEqual(func(a, b float64) bool {
+    const epsilon = 1e-3
+    return math.Abs(a-b) < epsilon
 })
 ```
 
