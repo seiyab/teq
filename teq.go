@@ -2,6 +2,7 @@ package teq
 
 import (
 	"reflect"
+	"strings"
 )
 
 // Teq is a object for deep equality comparison.
@@ -38,6 +39,16 @@ func (teq Teq) Equal(t TestingT, expected, actual any) bool {
 		t.Errorf(teq.report(expected, actual))
 	}
 	return ok
+}
+
+// TODO: remove this
+func (teq Teq) Eq(expected, actual any) bool {
+	return teq.equal(expected, actual)
+}
+
+// TODO: remove this
+func (teq Teq) Fmt(x reflect.Value) string {
+	return strings.Join(teq.format(x, make(map[fmtVisit]bool), 0).diffSequence(), "")
 }
 
 // NotEqual perform deep equality check and report error if equal.
