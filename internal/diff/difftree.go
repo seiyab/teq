@@ -2,7 +2,6 @@ package diff
 
 import (
 	"reflect"
-	"strings"
 )
 
 type DiffTree struct {
@@ -20,17 +19,25 @@ func (d DiffTree) Format() string {
 	if d.loss == 0 {
 		return ""
 	}
+	l := d.lines()
+	return l.print()
+}
+
+func (d DiffTree) lines() lines {
+	if d.loss == 0 {
+		return lines{}
+	}
 	if d.left.Kind() != d.right.Kind() {
 		panic("kind mismatch: not implemented")
 	}
 	switch d.left.Kind() {
 	case reflect.String:
-		return strings.Join([]string{
-			"- " + d.left.String(),
-			"+ " + d.right.String(),
-		}, "\n")
+		return lines{
+			leftLine(d.left.String()),
+			rightLine(d.right.String()),
+		}
 	}
-	panic("kind not implemented")
+	panic("not implemented kind" + d.left.Kind().String())
 }
 
 type entry struct {
