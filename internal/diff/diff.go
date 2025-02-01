@@ -6,10 +6,18 @@ import (
 	"unsafe"
 )
 
-func Diff(x, y any) (DiffTree, error) {
+type Differ struct {
+	reflectEqual func(v1, v2 reflect.Value) bool
+}
+
+func New() Differ {
+	return Differ{}
+}
+
+func (d Differ) Diff(x, y any) (DiffTree, error) {
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
-	return diff(v1, v2, make(map[visit]bool), 0)
+	return d.diff(v1, v2, make(map[visit]bool), 0)
 }
 
 type visit struct {
@@ -20,13 +28,16 @@ type visit struct {
 
 const maxDepth = 100
 
-func diff(
+func (d Differ) diff(
 	v1, v2 reflect.Value,
 	visited map[visit]bool,
 	depth int,
 ) (DiffTree, error) {
 	if depth > maxDepth {
 		return DiffTree{}, fmt.Errorf("maximum depth exceeded")
+	}
+	if d.reflectEqual != nil && d.reflectEqual(v1, v2) {
+		return same(v1), nil
 	}
 	if !v1.IsValid() || !v2.IsValid() {
 		return DiffTree{}, fmt.Errorf("not implemented")
@@ -82,7 +93,7 @@ func diff(
 		panic("diff is not defined for " + v1.Type().String())
 	}
 	var n next = func(v1, v2 reflect.Value) (DiffTree, error) {
-		return diff(v1, v2, visited, depth+1)
+		return d.diff(v1, v2, visited, depth+1)
 	}
 	return diffFunc(v1, v2, n)
 }

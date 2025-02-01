@@ -9,7 +9,7 @@ import (
 
 func TestDiff_String(t *testing.T) {
 	t.Run("word", func(t *testing.T) {
-		d, e := diff.Diff("hello", "world")
+		d, e := diff.New().Diff("hello", "world")
 		if e != nil {
 			t.Fatal(e)
 		}
