@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -33,11 +34,15 @@ func (d DiffTree) lines() lines {
 	switch d.left.Kind() {
 	case reflect.String:
 		return lines{
-			leftLine(d.left.String()),
-			rightLine(d.right.String()),
+			leftLine(quote(d.left.String())),
+			rightLine(quote(d.right.String())),
 		}
 	}
 	panic("not implemented kind" + d.left.Kind().String())
+}
+
+func quote(s string) string {
+	return fmt.Sprintf("%q", s)
 }
 
 type entry struct {

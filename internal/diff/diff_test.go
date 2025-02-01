@@ -15,8 +15,8 @@ func TestDiff_String(t *testing.T) {
 		}
 		f := d.Format()
 		x := strings.Join([]string{
-			"- hello",
-			"+ world",
+			`- "hello"`,
+			`+ "world"`,
 		}, "\n")
 		if f != x {
 			t.Fatalf("expected %q, got %q", x, f)
