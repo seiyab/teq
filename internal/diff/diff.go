@@ -46,22 +46,6 @@ func (d Differ) diff(
 		return DiffTree{}, fmt.Errorf("not implemented")
 	}
 
-	/*
-		eq, ok := teq.equals[v1.Type()]
-		if ok {
-			return eq(v1, v2)
-		}
-
-		tr, ok := teq.transforms[v1.Type()]
-		if ok {
-			t1 := tr(v1)
-			t2 := tr(v2)
-			newTeq := New()
-			newTeq.MaxDepth = teq.MaxDepth
-			return newTeq.deepValueEqual(t1, t2, visited, depth)
-		}
-	*/
-
 	if hard(v1.Kind()) {
 		if v1.CanAddr() && v2.CanAddr() {
 			addr1 := v1.Addr().UnsafePointer()
