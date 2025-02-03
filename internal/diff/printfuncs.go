@@ -73,13 +73,20 @@ func printStructEntry(e entry, nx printNext) lines {
 	if len(ls) == 0 {
 		panic("unexpected empty lines")
 	}
+	z := len(ls) - 1
 	if ls[0].onLeft && ls[0].onRight {
 		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text)
+		if ls[z].onLeft && ls[z].onRight {
+			ls[z] = ls[z].overrideText(ls[z].text + ",")
+		} else {
+			ls.add(bothLine(","))
+		}
 	} else if len(ls) == 2 {
-		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text)
-		ls[1] = ls[1].overrideText(e.key + ": " + ls[1].text)
+		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text + ",")
+		ls[1] = ls[1].overrideText(e.key + ": " + ls[1].text + ",")
 	} else {
-		panic("expected condition not satisfied")
+		ls = append(lines{leftLine(e.key + ":").open()}, ls...)
+		ls.add(leftLine(",").close())
 	}
 	return ls
 }
