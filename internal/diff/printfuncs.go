@@ -14,7 +14,7 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Chan:       notImplementedPrint,
 	reflect.Interface:  notImplementedPrint,
 	reflect.Pointer:    notImplementedPrint,
-	reflect.Struct:     notImplementedPrint,
+	reflect.Struct:     printStruct,
 	reflect.Map:        notImplementedPrint,
 	reflect.Func:       notImplementedPrint,
 	reflect.Int:        printInt,
@@ -50,6 +50,38 @@ func printString(t DiffTree, _ printNext) lines {
 		leftLine(quote(t.left.String())),
 		rightLine(quote(t.right.String())),
 	}
+}
+
+func printStruct(t DiffTree, nx printNext) lines {
+	if t.loss == 0 {
+		return lines{
+			bothLine(t.left.Type().String() + "{ ... }"),
+		}
+	}
+	var result lines
+	result.add(bothLine(t.left.Type().String() + "{").open())
+	for _, e := range t.entries {
+		result.concat(printStructEntry(e, nx))
+	}
+	result.add(bothLine("}").close())
+
+	return result
+}
+
+func printStructEntry(e entry, nx printNext) lines {
+	ls := nx(e.value)
+	if len(ls) == 0 {
+		panic("unexpected empty lines")
+	}
+	if ls[0].onLeft && ls[0].onRight {
+		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text)
+	} else if len(ls) == 2 {
+		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text)
+		ls[1] = ls[1].overrideText(e.key + ": " + ls[1].text)
+	} else {
+		panic("expected condition not satisfied")
+	}
+	return ls
 }
 
 var printInt = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%d", v.Int()) })

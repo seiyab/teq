@@ -70,3 +70,58 @@ func TestDiff_Primitive(t *testing.T) {
 		}
 	})
 }
+
+func TestDiff_Struct(t *testing.T) {
+	t.Run("struct", func(t *testing.T) {
+		type S struct {
+			A int
+			B string
+		}
+		type testCase struct {
+			name  string
+			left  S
+			right S
+			want  string
+		}
+		for _, tc := range []testCase{
+			{
+				name:  "completely different",
+				left:  S{A: 1, B: "hello"},
+				right: S{A: 2, B: "world"},
+				want: strings.Join([]string{
+					`  diff_test.S{`,
+					`-   A: 1`,
+					`+   A: 2`,
+					`-   B: "hello"`,
+					`+   B: "world"`,
+					`  }`,
+				}, "\n"),
+			},
+			{
+				name:  "partially different",
+				left:  S{A: 1, B: "hello"},
+				right: S{A: 1, B: "world"},
+				want: strings.Join([]string{
+					`  diff_test.S{`,
+					`    A: 1`,
+					`-   B: "hello"`,
+					`+   B: "world"`,
+					`  }`,
+				}, "\n"),
+			},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				d, e := diff.New().Diff(tc.left, tc.right)
+				if e != nil {
+					t.Fatal(e)
+				}
+				f := d.Format()
+				if f != tc.want {
+					t.Errorf("expected %q, got %q", tc.want, f)
+					t.Log(f)
+					t.Log(tc.want)
+				}
+			})
+		}
+	})
+}

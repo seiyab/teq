@@ -5,28 +5,45 @@ import "strings"
 const indentSize = 2
 
 type line struct {
-	marker string
-	depth  int
-	text   string
+	onLeft  bool
+	onRight bool
+	text    string
+	isOpen  bool
+	isClose bool
 }
 
 func leftLine(text string) line {
-	return line{marker: "- ", text: text}
+	return line{onLeft: true, text: text}
 }
 func rightLine(text string) line {
-	return line{marker: "+ ", text: text}
+	return line{onRight: true, text: text}
 }
 func bothLine(text string) line {
-	return line{text: text}
+	return line{onLeft: true, onRight: true, text: text}
 }
 
-func (l line) indent() line {
-	l.depth++
+func (l line) open() line {
+	l.isOpen = true
+	return l
+}
+func (l line) close() line {
+	l.isClose = true
 	return l
 }
 
-func (l line) print() string {
-	return l.marker + strings.Repeat(" ", l.depth*indentSize) + l.text
+func (l line) overrideText(text string) line {
+	l.text = text
+	return l
+}
+
+func (l line) print(depth int) string {
+	var marker string = "  "
+	if l.onLeft && !l.onRight {
+		marker = "- "
+	} else if !l.onLeft && l.onRight {
+		marker = "+ "
+	}
+	return marker + strings.Repeat(" ", depth*indentSize) + l.text
 }
 
 type lines []line
@@ -39,18 +56,17 @@ func (l *lines) concat(other lines) {
 	*l = append(*l, other...)
 }
 
-func (l lines) indent() lines {
-	result := lines{}
-	for _, line := range l {
-		result.add(line.indent())
-	}
-	return result
-}
-
 func (l lines) print() string {
-	ls := make([]string, 0, len(l))
-	for _, line := range l {
-		ls = append(ls, line.print())
+	var depth int = 0
+	var ls []string
+	for _, ln := range l {
+		if ln.isClose {
+			depth--
+		}
+		ls = append(ls, ln.print(depth))
+		if ln.isOpen {
+			depth++
+		}
 	}
 	return strings.Join(ls, "\n")
 }
