@@ -14,7 +14,7 @@ var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Chan:       notImplemented,
 	reflect.Interface:  notImplemented,
 	reflect.Pointer:    notImplemented,
-	reflect.Struct:     notImplemented,
+	reflect.Struct:     structDiff,
 	reflect.Map:        notImplemented,
 	reflect.Func:       notImplemented,
 	reflect.Int:        intDiff,
@@ -36,8 +36,24 @@ var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Complex128: complexDiff,
 }
 
-func notImplemented(v1, v2 reflect.Value, _ next) (DiffTree, error) {
+func notImplemented(v1, v2 reflect.Value, n next) (DiffTree, error) {
 	return DiffTree{}, fmt.Errorf("not implemented")
+}
+
+func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
+	if v1.Type() != v2.Type() {
+		return DiffTree{}, fmt.Errorf("not implemented")
+	}
+	entries := make([]entry, 0, v1.NumField())
+	for i, n := 0, v1.NumField(); i < n; i++ {
+		key := v1.Type().Field(i).Name
+		vd, err := nx(field(v1, i), field(v2, i))
+		if err != nil {
+			return DiffTree{}, err
+		}
+		entries = append(entries, entry{key: key, value: vd, left: true, right: true})
+	}
+	return DiffTree{loss: 1, entries: entries, left: v1, right: v2}, nil
 }
 
 var intDiff = primitiveDiff(func(v reflect.Value) int64 { return v.Int() })
@@ -54,4 +70,15 @@ func primitiveDiff[T comparable](f func(v reflect.Value) T) diffFunc {
 		}
 		return DiffTree{loss: 1, left: v1, right: v2}, nil
 	}
+}
+
+func field(v reflect.Value, idx int) reflect.Value {
+	f1 := v.Field(idx)
+	if f1.CanAddr() {
+		return f1
+	}
+	vc := reflect.New(v.Type()).Elem()
+	vc.Set(v)
+	rf := vc.Field(idx)
+	return reflect.NewAt(rf.Type(), rf.Addr().UnsafePointer()).Elem()
 }
