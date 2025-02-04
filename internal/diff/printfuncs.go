@@ -10,7 +10,7 @@ type printFunc = func(t DiffTree, n printNext) lines
 
 var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Array:      notImplementedPrint,
-	reflect.Slice:      notImplementedPrint,
+	reflect.Slice:      printSlice,
 	reflect.Chan:       notImplementedPrint,
 	reflect.Interface:  notImplementedPrint,
 	reflect.Pointer:    notImplementedPrint,
@@ -38,6 +38,28 @@ var printFuncs = map[reflect.Kind]printFunc{
 
 func notImplementedPrint(t DiffTree, n printNext) lines {
 	panic("not implemented")
+}
+
+func printSlice(t DiffTree, nx printNext) lines {
+	if t.loss == 0 {
+		return lines{
+			bothLine(t.left.Type().String() + "{ ... }"),
+		}
+	}
+	var result lines
+	result.add(bothLine(t.left.Type().String() + "{").open())
+	for _, e := range t.entries {
+		ls := nx(e.value)
+		if e.leftOnly {
+			ls.left()
+		} else if e.rightOnly {
+			ls.right()
+		}
+		result.concat(ls)
+	}
+	result.add(bothLine("}").close())
+
+	return result
 }
 
 func printString(t DiffTree, _ printNext) lines {

@@ -36,8 +36,13 @@ func (d Differ) diff(
 	if depth > maxDepth {
 		return DiffTree{}, fmt.Errorf("maximum depth exceeded")
 	}
-	if d.reflectEqual != nil && d.reflectEqual(v1, v2) {
-		return same(v1), nil
+	if d.reflectEqual != nil {
+		if d.reflectEqual(v1, v2) {
+			return same(v1), nil
+		}
+		if reflect.DeepEqual(v1.Interface(), v2.Interface()) {
+			return same(v1), nil
+		}
 	}
 	if !v1.IsValid() || !v2.IsValid() {
 		return DiffTree{}, fmt.Errorf("not implemented")

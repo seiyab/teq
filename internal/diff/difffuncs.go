@@ -10,7 +10,7 @@ type diffFunc = func(v1, v2 reflect.Value, n next) (DiffTree, error)
 
 var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Array:      notImplemented,
-	reflect.Slice:      notImplemented,
+	reflect.Slice:      sliceDiff,
 	reflect.Chan:       notImplemented,
 	reflect.Interface:  notImplemented,
 	reflect.Pointer:    notImplemented,
@@ -40,9 +40,26 @@ func notImplemented(v1, v2 reflect.Value, n next) (DiffTree, error) {
 	return DiffTree{}, fmt.Errorf("not implemented")
 }
 
+func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
+	if v1.Type() != v2.Type() {
+		return DiffTree{}, fmt.Errorf("unexpected type mismatch")
+	}
+	if v1.IsNil() || v2.IsNil() {
+		if v1.IsNil() && v2.IsNil() {
+			return same(v1), nil
+		}
+		return DiffTree{loss: 1, left: v1, right: v2}, nil
+	}
+	es, err := sliceEntries(v1, v2, nx)
+	if err != nil {
+		return DiffTree{}, err
+	}
+	return DiffTree{loss: 1, entries: es, left: v1, right: v2}, nil
+}
+
 func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 	if v1.Type() != v2.Type() {
-		return DiffTree{}, fmt.Errorf("not implemented")
+		return DiffTree{}, fmt.Errorf("unexpected type mismatch")
 	}
 	entries := make([]entry, 0, v1.NumField())
 	for i, n := 0, v1.NumField(); i < n; i++ {
@@ -51,7 +68,7 @@ func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		if err != nil {
 			return DiffTree{}, err
 		}
-		entries = append(entries, entry{key: key, value: vd, left: true, right: true})
+		entries = append(entries, entry{key: key, value: vd, leftOnly: true, rightOnly: true})
 	}
 	return DiffTree{loss: 1, entries: entries, left: v1, right: v2}, nil
 }

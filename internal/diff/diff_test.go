@@ -1,6 +1,7 @@
 package diff_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -183,6 +184,51 @@ func TestDiff_Struct(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
+				d, e := diff.New().Diff(tc.left, tc.right)
+				if e != nil {
+					t.Fatal(e)
+				}
+				f := d.Format()
+				if f != tc.want {
+					t.Errorf("expected %q, got %q", tc.want, f)
+					t.Log(f)
+					t.Log(tc.want)
+				}
+			})
+		}
+	})
+}
+
+func TestDiff_Slice(t *testing.T) {
+	t.Run("slice of primitive", func(t *testing.T) {
+		type testCase struct {
+			left  []int
+			right []int
+			want  string
+		}
+		for _, tc := range []testCase{
+			{
+				left:  []int{1, 2, 3},
+				right: []int{1, 2, 3},
+				want: strings.Join([]string{
+					`  []int{ ... }`,
+				}, "\n"),
+			},
+			{
+				left:  []int{1, 2, 3},
+				right: []int{1, 2, 4},
+				want: strings.Join([]string{
+					`  []int{`,
+					`    1,`,
+					`    2,`,
+					`-   3,`,
+					`+   4,`,
+					`  }`,
+				}, "\n"),
+			},
+		} {
+			name := fmt.Sprintf("%v vs %v", tc.left, tc.right)
+			t.Run(name, func(t *testing.T) {
 				d, e := diff.New().Diff(tc.left, tc.right)
 				if e != nil {
 					t.Fatal(e)

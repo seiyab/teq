@@ -16,6 +16,10 @@ func same(v reflect.Value) DiffTree {
 	return DiffTree{loss: 0, left: v, right: v}
 }
 
+func imbalanced(v reflect.Value) DiffTree {
+	return DiffTree{loss: 1, left: v, right: v}
+}
+
 func (d DiffTree) Format() string {
 	if d.loss == 0 {
 		return ""
@@ -42,8 +46,8 @@ func quote(s string) string {
 }
 
 type entry struct {
-	key   string
-	value DiffTree
-	left  bool
-	right bool
+	key       string
+	value     DiffTree
+	leftOnly  bool
+	rightOnly bool
 }

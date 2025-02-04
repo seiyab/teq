@@ -56,6 +56,20 @@ func (l *lines) concat(other lines) {
 	*l = append(*l, other...)
 }
 
+func (l *lines) left() {
+	for i := range *l {
+		(*l)[i].onLeft = true
+		(*l)[i].onRight = false
+	}
+}
+
+func (l *lines) right() {
+	for i := range *l {
+		(*l)[i].onLeft = false
+		(*l)[i].onRight = true
+	}
+}
+
 func (l lines) print() string {
 	var depth int = 0
 	var ls []string
