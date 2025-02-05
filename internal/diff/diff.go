@@ -17,7 +17,13 @@ func New() Differ {
 func (d Differ) Diff(x, y any) (DiffTree, error) {
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
-	return d.diff(v1, v2, make(map[visit]bool), 0)
+	p := diffProcess{differ: d}
+	return p.diff(v1, v2, 0)
+}
+
+type diffProcess struct {
+	differ  Differ
+	visited map[visit]bool
 }
 
 type visit struct {
@@ -28,11 +34,11 @@ type visit struct {
 
 const maxDepth = 100
 
-func (d Differ) diff(
+func (p diffProcess) diff(
 	v1, v2 reflect.Value,
-	visited map[visit]bool,
 	depth int,
 ) (DiffTree, error) {
+	d := p.differ
 	if depth > maxDepth {
 		return DiffTree{}, fmt.Errorf("maximum depth exceeded")
 	}
@@ -52,6 +58,24 @@ func (d Differ) diff(
 		return DiffTree{}, fmt.Errorf("not implemented")
 	}
 
+	if p.cycle(v1, v2) {
+		return same(v1), nil
+	}
+
+	diffFunc, ok := diffFuncs[v1.Kind()]
+	if !ok {
+		panic("diff is not defined for " + v1.Type().String())
+	}
+	var n next = func(v1, v2 reflect.Value) (DiffTree, error) {
+		return p.diff(v1, v2, depth+1)
+	}
+	return diffFunc(v1, v2, n)
+}
+
+func (p *diffProcess) cycle(v1, v2 reflect.Value) bool {
+	if p.visited == nil {
+		p.visited = make(map[visit]bool)
+	}
 	if hard(v1.Kind()) {
 		if v1.CanAddr() && v2.CanAddr() {
 			addr1 := v1.Addr().UnsafePointer()
@@ -59,7 +83,7 @@ func (d Differ) diff(
 
 			// Short circuit
 			if uintptr(addr1) == uintptr(addr2) {
-				return same(v1), nil
+				return true
 			}
 			if uintptr(addr1) > uintptr(addr2) {
 				// Canonicalize order to reduce number of entries in visited.
@@ -69,23 +93,15 @@ func (d Differ) diff(
 			// Short circuit if references are already seen.
 			typ := v1.Type()
 			v := visit{addr1, addr2, typ}
-			if visited[v] {
-				return same(v1), nil
+			if p.visited[v] {
+				return true
 			}
 
 			// Remember for later.
-			visited[v] = true
+			p.visited[v] = true
 		}
 	}
-
-	diffFunc, ok := diffFuncs[v1.Kind()]
-	if !ok {
-		panic("diff is not defined for " + v1.Type().String())
-	}
-	var n next = func(v1, v2 reflect.Value) (DiffTree, error) {
-		return d.diff(v1, v2, visited, depth+1)
-	}
-	return diffFunc(v1, v2, n)
+	return false
 }
 
 func hard(k reflect.Kind) bool {
