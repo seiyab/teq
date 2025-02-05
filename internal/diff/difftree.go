@@ -3,6 +3,8 @@ package diff
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/seiyab/teq/internal/doc"
 )
 
 type DiffTree struct {
@@ -17,18 +19,18 @@ func same(v reflect.Value) DiffTree {
 }
 
 func imbalanced(v reflect.Value) DiffTree {
-	return DiffTree{loss: 1, left: v, right: v}
+	return DiffTree{loss: 0, left: v, right: v}
 }
 
 func (d DiffTree) Format() string {
 	if d.loss == 0 {
 		return ""
 	}
-	l := d.lines()
-	return l.print()
+	o := d.docs()
+	return doc.PrintDoc(o)
 }
 
-func (d DiffTree) lines() lines {
+func (d DiffTree) docs() []doc.Doc {
 	if d.left.Kind() != d.right.Kind() {
 		panic("kind mismatch: not implemented")
 	}
@@ -36,8 +38,8 @@ func (d DiffTree) lines() lines {
 	if !ok {
 		panic("not implemented: " + d.left.Kind().String())
 	}
-	return f(d, func(t DiffTree) lines {
-		return t.lines()
+	return f(d, func(t DiffTree) []doc.Doc {
+		return t.docs()
 	})
 }
 

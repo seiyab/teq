@@ -3,10 +3,12 @@ package diff
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/seiyab/teq/internal/doc"
 )
 
-type printNext func(t DiffTree) lines
-type printFunc = func(t DiffTree, n printNext) lines
+type printNext func(t DiffTree) []doc.Doc
+type printFunc = func(t DiffTree, n printNext) []doc.Doc
 
 var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Array:      notImplementedPrint,
@@ -36,81 +38,79 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Complex128: printComplex,
 }
 
-func notImplementedPrint(t DiffTree, n printNext) lines {
+func notImplementedPrint(t DiffTree, n printNext) []doc.Doc {
 	panic("not implemented")
 }
 
-func printSlice(t DiffTree, nx printNext) lines {
+func printSlice(t DiffTree, nx printNext) []doc.Doc {
 	if t.loss == 0 {
-		return lines{
-			bothLine(t.left.Type().String() + "{ ... }"),
+		return []doc.Doc{
+			doc.BothInline(t.left.Type().String() + "{ ... }"),
 		}
 	}
-	var result lines
-	result.add(bothLine(t.left.Type().String() + "{").open())
+	var items []doc.Doc
 	for _, e := range t.entries {
-		ls := nx(e.value)
-		if e.leftOnly {
-			ls.left()
-		} else if e.rightOnly {
-			ls.right()
-		}
-		result.concat(ls)
-	}
-	result.add(bothLine("}").close())
-
-	return result
-}
-
-func printString(t DiffTree, _ printNext) lines {
-	if t.loss == 0 {
-		return lines{
-			bothLine(quote(t.left.String())),
+		docs := nx(e.value)
+		for _, d := range docs {
+			if e.leftOnly {
+				d = d.Left()
+			} else if e.rightOnly {
+				d = d.Right()
+			}
+			items = append(items, d.AddSuffix(","))
 		}
 	}
-	return lines{
-		leftLine(quote(t.left.String())),
-		rightLine(quote(t.right.String())),
+
+	return []doc.Doc{
+		doc.Block(
+			doc.BothInline(t.left.Type().String()+"{"),
+			items,
+			doc.BothInline("}"),
+		),
 	}
 }
 
-func printStruct(t DiffTree, nx printNext) lines {
+func printString(t DiffTree, _ printNext) []doc.Doc {
 	if t.loss == 0 {
-		return lines{
-			bothLine(t.left.Type().String() + "{ ... }"),
+		return []doc.Doc{
+			doc.BothInline(quote(t.left.String())),
 		}
 	}
-	var result lines
-	result.add(bothLine(t.left.Type().String() + "{").open())
+	return []doc.Doc{
+		doc.LeftInline(quote(t.left.String())),
+		doc.RightInline(quote(t.right.String())),
+	}
+}
+
+func printStruct(t DiffTree, nx printNext) []doc.Doc {
+	if t.loss == 0 {
+		return []doc.Doc{
+			doc.BothInline(t.left.Type().String() + "{ ... }"),
+		}
+	}
+	var items []doc.Doc
 	for _, e := range t.entries {
-		result.concat(printStructEntry(e, nx))
+		items = append(items, printStructEntry(e, nx)...)
 	}
-	result.add(bothLine("}").close())
-
-	return result
+	return []doc.Doc{
+		doc.Block(
+			doc.BothInline(t.left.Type().String()+"{"),
+			items,
+			doc.BothInline("}"),
+		),
+	}
 }
 
-func printStructEntry(e entry, nx printNext) lines {
-	ls := nx(e.value)
-	if len(ls) == 0 {
-		panic("unexpected empty lines")
+func printStructEntry(e entry, nx printNext) []doc.Doc {
+	docs := nx(e.value)
+	var items []doc.Doc
+	for _, d := range docs {
+		items = append(
+			items,
+			d.AddPrefix(e.key+": ").AddSuffix(","),
+		)
 	}
-	z := len(ls) - 1
-	if ls[0].onLeft && ls[0].onRight {
-		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text)
-		if ls[z].onLeft && ls[z].onRight {
-			ls[z] = ls[z].overrideText(ls[z].text + ",")
-		} else {
-			ls.add(bothLine(","))
-		}
-	} else if len(ls) == 2 {
-		ls[0] = ls[0].overrideText(e.key + ": " + ls[0].text + ",")
-		ls[1] = ls[1].overrideText(e.key + ": " + ls[1].text + ",")
-	} else {
-		ls = append(lines{leftLine(e.key + ":").open()}, ls...)
-		ls.add(leftLine(",").close())
-	}
-	return ls
+	return items
 }
 
 var printInt = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%d", v.Int()) })
@@ -120,15 +120,15 @@ var printFloat = printPrimitive(func(v reflect.Value) string { return fmt.Sprint
 var printComplex = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%f", v.Complex()) })
 
 func printPrimitive(f func(v reflect.Value) string) printFunc {
-	return func(t DiffTree, _ printNext) lines {
+	return func(t DiffTree, _ printNext) []doc.Doc {
 		if t.loss == 0 {
-			return lines{
-				bothLine(f(t.left)),
+			return []doc.Doc{
+				doc.BothInline(f(t.left)),
 			}
 		}
-		return lines{
-			leftLine(f(t.left)),
-			rightLine(f(t.right)),
+		return []doc.Doc{
+			doc.LeftInline(f(t.left)),
+			doc.RightInline(f(t.right)),
 		}
 	}
 }
