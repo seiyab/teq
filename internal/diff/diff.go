@@ -40,6 +40,7 @@ func (d Differ) diff(
 		if d.reflectEqual(v1, v2) {
 			return same(v1), nil
 		}
+	} else {
 		if reflect.DeepEqual(v1.Interface(), v2.Interface()) {
 			return same(v1), nil
 		}

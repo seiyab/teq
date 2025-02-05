@@ -14,21 +14,18 @@ type dpCell struct {
 }
 
 func sliceEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
-	k := 0
-	for ; k < v1.Len() && k < v2.Len(); k++ {
-		t, err := nx(v1.Index(k), v2.Index(k))
+	leading := make([]entry, 0)
+	for i := 0; i < v1.Len() && i < v2.Len(); i++ {
+		t, err := nx(v1.Index(i), v2.Index(i))
 		if err != nil {
 			return nil, err
 		}
 		if t.loss > 0 {
 			break
 		}
-	}
-
-	leading := make([]entry, 0, k)
-	for i := 0; i < k; i++ {
 		leading = append(leading, entry{value: same(v1.Index(i))})
 	}
+	k := len(leading)
 
 	dp := make([][]dpCell, v1.Len()-k+1)
 	for i := range dp {
