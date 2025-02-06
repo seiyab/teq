@@ -5,12 +5,12 @@ import "reflect"
 type entriesFunc func(v reflect.Value, n nextEntries) []entry
 type nextEntries func(v reflect.Value) []entry
 
-func entreisOf(v reflect.Value) []entry {
+func entriesOf(v reflect.Value) []entry {
 	f, ok := entriesFuncs[v.Kind()]
 	if !ok {
 		return nil
 	}
-	return f(v, entreisOf)
+	return f(v, entriesOf)
 }
 
 var entriesFuncs = map[reflect.Kind]entriesFunc{}

@@ -58,9 +58,13 @@ func (p diffProcess) diff(
 		return DiffTree{}, fmt.Errorf("not implemented")
 	}
 
-	if p.cycle(v1, v2) {
-		return same(v1), nil
-	}
+	/*
+		// sometimes diffing rollbacks so visit memoization doesn't work.
+		// should be fixed in the future.
+		if p.cycle(v1, v2) {
+			return same(v1), nil
+		}
+	*/
 
 	diffFunc, ok := diffFuncs[v1.Kind()]
 	if !ok {

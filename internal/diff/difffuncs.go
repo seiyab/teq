@@ -54,6 +54,7 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 	if err != nil {
 		return DiffTree{}, err
 	}
+
 	return DiffTree{
 		loss:    lossForEntries(es),
 		entries: es,

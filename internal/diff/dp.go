@@ -87,12 +87,6 @@ func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
 	a := len(dp) - 1
 	b := len(dp[a]) - 1
 	if dp[a][b].loss > 1_000_000 {
-		for i := range dp {
-			for j := range dp[i] {
-				fmt.Printf("%v ", dp[i][j].loss)
-			}
-			fmt.Println()
-		}
 		return nil, fmt.Errorf("faild to compute diff")
 	}
 

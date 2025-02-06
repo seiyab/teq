@@ -18,7 +18,7 @@ type DiffTree struct {
 func same(v reflect.Value) DiffTree {
 	return DiffTree{
 		loss:    0,
-		entries: entreisOf(v),
+		entries: entriesOf(v),
 		left:    v,
 		right:   v,
 	}
@@ -87,7 +87,7 @@ type entry struct {
 
 func lossForEntries(es []entry) float64 {
 	if len(es) == 0 {
-		return 0
+		return 0.1
 	}
 	const max = 0.9
 	total := 0.
