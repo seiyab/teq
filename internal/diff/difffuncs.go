@@ -55,7 +55,7 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		return DiffTree{}, err
 	}
 	return DiffTree{
-		loss:    1,
+		loss:    lossForEntries(es),
 		entries: es,
 		left:    v1,
 		right:   v2,
@@ -76,7 +76,7 @@ func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		entries = append(entries, entry{key: key, value: vd, leftOnly: true, rightOnly: true})
 	}
 	return DiffTree{
-		loss:    1,
+		loss:    lossForEntries(entries),
 		entries: entries,
 		left:    v1,
 		right:   v2,

@@ -79,3 +79,19 @@ type entry struct {
 	leftOnly  bool
 	rightOnly bool
 }
+
+func lossForEntries(es []entry) float64 {
+	if len(es) == 0 {
+		return 0
+	}
+	const max = 0.9
+	total := 0.
+	for _, e := range es {
+		if e.leftOnly || e.rightOnly {
+			total += 1
+			continue
+		}
+		total += e.value.loss
+	}
+	return total / (max * float64(len(es)))
+}
