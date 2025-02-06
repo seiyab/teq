@@ -9,6 +9,7 @@ import (
 
 type DiffTree struct {
 	loss    float64
+	split   bool
 	entries []entry
 	left    reflect.Value
 	right   reflect.Value
@@ -22,14 +23,42 @@ func imbalanced(v reflect.Value) DiffTree {
 	return DiffTree{loss: 0, left: v, right: v}
 }
 
+func eachSide(left, right reflect.Value) DiffTree {
+	return DiffTree{
+		loss:  1,
+		split: true,
+		entries: []entry{
+			{value: imbalanced(left), leftOnly: true},
+			{value: imbalanced(right), rightOnly: true},
+		},
+		left:  left,
+		right: right,
+	}
+}
+
 func (d DiffTree) Format() string {
 	o := d.docs()
 	return doc.PrintDoc(o)
 }
 
 func (d DiffTree) docs() []doc.Doc {
+	if d.split {
+		if len(d.entries) != 2 {
+			panic("unexpected entries length")
+		}
+		var ds []doc.Doc
+		l := d.entries[0].value.docs()
+		for _, d := range l {
+			ds = append(ds, d.Left())
+		}
+		r := d.entries[1].value.docs()
+		for _, d := range r {
+			ds = append(ds, d.Right())
+		}
+		return ds
+	}
 	if d.left.Kind() != d.right.Kind() {
-		panic("kind mismatch: not implemented")
+		panic("kind mismatch: shouldn't happen. it's a bug if you see this")
 	}
 	f, ok := printFuncs[d.left.Kind()]
 	if !ok {

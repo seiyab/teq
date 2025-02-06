@@ -121,14 +121,6 @@ var printComplex = printPrimitive(func(v reflect.Value) string { return fmt.Spri
 
 func printPrimitive(f func(v reflect.Value) string) printFunc {
 	return func(t DiffTree, _ printNext) []doc.Doc {
-		if t.loss == 0 {
-			return []doc.Doc{
-				doc.BothInline(f(t.left)),
-			}
-		}
-		return []doc.Doc{
-			doc.LeftInline(f(t.left)),
-			doc.RightInline(f(t.right)),
-		}
+		return []doc.Doc{doc.BothInline(f(t.left))}
 	}
 }

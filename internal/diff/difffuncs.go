@@ -48,18 +48,23 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		if v1.IsNil() && v2.IsNil() {
 			return same(v1), nil
 		}
-		return DiffTree{loss: 1, left: v1, right: v2}, nil
+		return eachSide(v1, v2), nil
 	}
 	es, err := sliceEntries(v1, v2, nx)
 	if err != nil {
 		return DiffTree{}, err
 	}
-	return DiffTree{loss: 1, entries: es, left: v1, right: v2}, nil
+	return DiffTree{
+		loss:    1,
+		entries: es,
+		left:    v1,
+		right:   v2,
+	}, nil
 }
 
 func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 	if v1.Type() != v2.Type() {
-		return DiffTree{}, fmt.Errorf("unexpected type mismatch")
+		return eachSide(v1, v2), nil
 	}
 	entries := make([]entry, 0, v1.NumField())
 	for i, n := 0, v1.NumField(); i < n; i++ {
@@ -70,7 +75,12 @@ func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		}
 		entries = append(entries, entry{key: key, value: vd, leftOnly: true, rightOnly: true})
 	}
-	return DiffTree{loss: 1, entries: entries, left: v1, right: v2}, nil
+	return DiffTree{
+		loss:    1,
+		entries: entries,
+		left:    v1,
+		right:   v2,
+	}, nil
 }
 
 var intDiff = primitiveDiff(func(v reflect.Value) int64 { return v.Int() })
@@ -85,7 +95,7 @@ func primitiveDiff[T comparable](f func(v reflect.Value) T) diffFunc {
 		if f(v1) == f(v2) {
 			return same(v1), nil
 		}
-		return DiffTree{loss: 1, left: v1, right: v2}, nil
+		return eachSide(v1, v2), nil
 	}
 }
 
