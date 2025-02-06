@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -14,6 +15,9 @@ type dpCell struct {
 }
 
 func sliceEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
+	if v1.Kind() != reflect.Slice || v2.Kind() != reflect.Slice {
+		return nil, errors.New("unexpected kind")
+	}
 	leading := make([]entry, 0)
 	for i := 0; i < v1.Len() && i < v2.Len(); i++ {
 		t, err := nx(v1.Index(i), v2.Index(i))
@@ -36,7 +40,7 @@ func sliceEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
 	}
 	dp[0][0] = dpCell{loss: 0}
 	for a := 0; k+a < v1.Len()+1; a++ {
-		for b := 0; k+b+1 < v2.Len()+1; b++ {
+		for b := 0; k+b < v2.Len()+1; b++ {
 			l := dp[a][b].loss
 			if k+a < v1.Len() {
 				if l+1 < dp[a+1][b].loss {
