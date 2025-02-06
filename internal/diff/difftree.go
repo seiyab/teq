@@ -23,9 +23,6 @@ func imbalanced(v reflect.Value) DiffTree {
 }
 
 func (d DiffTree) Format() string {
-	if d.loss == 0 {
-		return ""
-	}
 	o := d.docs()
 	return doc.PrintDoc(o)
 }
