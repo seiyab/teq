@@ -16,11 +16,16 @@ type DiffTree struct {
 }
 
 func same(v reflect.Value) DiffTree {
-	return DiffTree{loss: 0, left: v, right: v}
+	return DiffTree{
+		loss:    0,
+		entries: entreisOf(v),
+		left:    v,
+		right:   v,
+	}
 }
 
 func imbalanced(v reflect.Value) DiffTree {
-	return DiffTree{loss: 0, left: v, right: v}
+	return same(v) // smells bad :(
 }
 
 func eachSide(left, right reflect.Value) DiffTree {

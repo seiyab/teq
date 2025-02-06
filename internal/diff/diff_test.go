@@ -211,7 +211,11 @@ func TestDiff_Slice(t *testing.T) {
 				left:  []int{1, 2, 3},
 				right: []int{1, 2, 3},
 				want: strings.Join([]string{
-					`  []int{ ... }`,
+					`  []int{`,
+					`    1,`,
+					`    2,`,
+					`    3,`,
+					`  }`,
 				}, "\n"),
 			},
 			{
@@ -280,8 +284,8 @@ func TestDiff_Slice(t *testing.T) {
 				f := d.Format()
 				if f != tc.want {
 					t.Errorf("expected %q, got %q", tc.want, f)
-					t.Log(f)
 					t.Log(tc.want)
+					t.Log(f)
 				}
 			})
 		}

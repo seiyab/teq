@@ -14,7 +14,7 @@ type dpCell struct {
 	fromB int
 }
 
-func sliceEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
+func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
 	if v1.Kind() != reflect.Slice || v2.Kind() != reflect.Slice {
 		return nil, errors.New("unexpected kind")
 	}

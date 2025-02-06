@@ -50,7 +50,7 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		}
 		return eachSide(v1, v2), nil
 	}
-	es, err := sliceEntries(v1, v2, nx)
+	es, err := sliceMixedEntries(v1, v2, nx)
 	if err != nil {
 		return DiffTree{}, err
 	}

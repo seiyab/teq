@@ -43,11 +43,6 @@ func notImplementedPrint(t DiffTree, n printNext) []doc.Doc {
 }
 
 func printSlice(t DiffTree, nx printNext) []doc.Doc {
-	if t.loss == 0 {
-		return []doc.Doc{
-			doc.BothInline(t.left.Type().String() + "{ ... }"),
-		}
-	}
 	var items []doc.Doc
 	for _, e := range t.entries {
 		docs := nx(e.value)
@@ -83,11 +78,6 @@ func printString(t DiffTree, _ printNext) []doc.Doc {
 }
 
 func printStruct(t DiffTree, nx printNext) []doc.Doc {
-	if t.loss == 0 {
-		return []doc.Doc{
-			doc.BothInline(t.left.Type().String() + "{ ... }"),
-		}
-	}
 	var items []doc.Doc
 	for _, e := range t.entries {
 		items = append(items, printStructEntry(e, nx)...)
