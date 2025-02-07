@@ -73,9 +73,13 @@ func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
 				if err != nil {
 					return nil, err
 				}
-				if l+t.loss < dp[a+1][b+1].loss {
+				tl := t.loss
+				if t.split {
+					tl = 2
+				}
+				if l+tl < dp[a+1][b+1].loss {
 					dp[a+1][b+1] = dpCell{
-						loss:  l + t.loss,
+						loss:  l + tl,
 						entry: entry{value: t},
 						fromA: a,
 						fromB: b,

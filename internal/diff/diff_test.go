@@ -347,29 +347,27 @@ func TestDiff_Slice(t *testing.T) {
 					`  }`,
 				}, "\n"),
 			},
-			/*
-				{
-					left:  [][]int{{1, 2}, {3, 4}},
-					right: [][]int{{1, 3}, {2}, {4, 5}},
-					want: strings.Join([]string{
-						`  [][]int{`,
-						`    []int{`,
-						`      1,`,
-						`-     2,`,
-						`+     3,`,
-						`    },`,
-						`+   []int{`,
-						`+     2,`,
-						`+   },`,
-						`    []int{`,
-						`-     3,`,
-						`      4,`,
-						`+     5,`,
-						`    },`,
-						`  }`,
-					}, "\n"),
-				},
-			*/
+			{
+				left:  [][]int{{1, 2}, {3, 4}},
+				right: [][]int{{1, 3}, {2}, {4, 5}},
+				want: strings.Join([]string{
+					`  [][]int{`,
+					`+   []int{`,
+					`+     1,`,
+					`+     3,`,
+					`+   },`,
+					`    []int{`,
+					`-     1,`,
+					`      2,`,
+					`    },`,
+					`    []int{`,
+					`-     3,`,
+					`      4,`,
+					`+     5,`,
+					`    },`,
+					`  }`,
+				}, "\n"),
+			},
 		} {
 			name := fmt.Sprintf("%v vs %v", tc.left, tc.right)
 			t.Run(name, func(t *testing.T) {
