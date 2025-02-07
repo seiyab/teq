@@ -111,6 +111,28 @@ func TestDiff_MultilineString(t *testing.T) {
 					`  )`,
 				}, "\n"),
 			},
+			{
+				name: "parial",
+				left: strings.Join([]string{
+					"---",
+					"abc",
+					"def",
+				}, "\n"),
+				right: strings.Join([]string{
+					"+++",
+					"def",
+					"ghi",
+				}, "\n"),
+				want: strings.Join([]string{
+					`  string(`,
+					`-   "---",`,
+					`-   "abc",`,
+					`+   "+++",`,
+					`    "def",`,
+					`+   "ghi",`,
+					`  )`,
+				}, "\n"),
+			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				d, e := diff.New().Diff(tc.left, tc.right)
