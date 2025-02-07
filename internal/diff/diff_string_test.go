@@ -21,6 +21,25 @@ func TestDiff_MultilineString(t *testing.T) {
 				left: strings.Join([]string{
 					"abc",
 					"def",
+				}, "\n"),
+				right: strings.Join([]string{
+					"jkl",
+					"mno",
+				}, "\n"),
+				want: strings.Join([]string{
+					`  string(`,
+					`+   "jkl",`,
+					`+   "mno",`,
+					`-   "abc",`,
+					`-   "def",`,
+					`  )`,
+				}, "\n"),
+			},
+			{
+				name: "partial match",
+				left: strings.Join([]string{
+					"abc",
+					"def",
 					"ghi",
 					"jkl",
 				}, "\n"),
@@ -38,6 +57,18 @@ func TestDiff_MultilineString(t *testing.T) {
 					`    "jkl",`,
 					`+   "mno",`,
 					`  )`,
+				}, "\n"),
+			},
+			{
+				name: "left is empty",
+				left: "",
+				right: strings.Join([]string{
+					"abc",
+					"ghi",
+				}, "\n"),
+				want: strings.Join([]string{
+					`- ""`,
+					`+ "abc\nghi"`,
 				}, "\n"),
 			},
 		} {
