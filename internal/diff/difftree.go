@@ -102,20 +102,25 @@ func lossForKeyedEntries(es []entry) float64 {
 }
 
 func lossForIndexedEntries(es []entry) float64 {
-	if len(es) == 0 {
-		return 0.1
-	}
 	const max = 0.9
+	if len(es) == 0 {
+		return max
+	}
 	n := 0.
 	total := 0.
 	for _, e := range es {
 		if e.value.split {
 			n += 2
 			total += 2
-		} else {
-			total += e.value.loss
-			n += 1
+			continue
 		}
+		if e.leftOnly || e.rightOnly {
+			n += 1
+			total += 1
+			continue
+		}
+		total += e.value.loss
+		n += 1
 	}
-	return total / (max * n)
+	return max * total / n
 }

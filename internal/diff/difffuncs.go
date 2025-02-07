@@ -3,6 +3,7 @@ package diff
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type next func(v1, v2 reflect.Value) (DiffTree, error)
@@ -84,9 +85,31 @@ func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 	}, nil
 }
 
+func stringDiff(v1, v2 reflect.Value, _ next) (DiffTree, error) {
+	s1, s2 := v1.String(), v2.String()
+	if s1 == s2 {
+		return same(v1), nil
+	}
+	lines1 := strings.Split(s1, "\n")
+	lines2 := strings.Split(s2, "\n")
+	if len(lines1) == 1 || len(lines2) == 1 {
+		return eachSide(v1, v2), nil
+	}
+	es, err := multiLineStringEntries(lines1, lines2)
+	if err != nil {
+		return DiffTree{}, err
+	}
+	fmt.Println("multiline", lossForIndexedEntries(es))
+	return DiffTree{
+		loss:    lossForIndexedEntries(es),
+		entries: es,
+		left:    v1,
+		right:   v2,
+	}, nil
+}
+
 var intDiff = primitiveDiff(func(v reflect.Value) int64 { return v.Int() })
 var uintDiff = primitiveDiff(func(v reflect.Value) uint64 { return v.Uint() })
-var stringDiff = primitiveDiff(func(v reflect.Value) string { return v.String() })
 var boolDiff = primitiveDiff(func(v reflect.Value) bool { return v.Bool() })
 var floatDiff = primitiveDiff(func(v reflect.Value) float64 { return v.Float() })
 var complexDiff = primitiveDiff(func(v reflect.Value) complex128 { return v.Complex() })

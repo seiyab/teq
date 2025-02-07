@@ -111,6 +111,91 @@ func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
 	return entries, nil
 }
 
+func multiLineStringEntries(v1, v2 []string) ([]entry, error) {
+	leading := make([]entry, 0)
+	for i := 0; i < len(v1) && i < len(v2); i++ {
+		if v1[i] != v2[i] {
+			break
+		}
+		leading = append(leading, entry{value: same(reflect.ValueOf(v1[i]))})
+	}
+	k := len(leading)
+
+	dp := make([][]dpCell, len(v1)-k+1)
+	for i := range dp {
+		dp[i] = make([]dpCell, len(v2)-k+1)
+		for j := range dp[i] {
+			dp[i][j] = dpCell{loss: math.MaxFloat64}
+		}
+	}
+	dp[0][0] = dpCell{loss: 0}
+
+	for a := 0; k+a < len(v1)+1; a++ {
+		for b := 0; k+b < len(v2)+1; b++ {
+			l := dp[a][b].loss
+			if k+a < len(v1) {
+				if l+1 < dp[a+1][b].loss {
+					dp[a+1][b] = dpCell{
+						loss: l + 1,
+						entry: entry{
+							leftOnly: true,
+							value:    imbalanced(reflect.ValueOf(v1[k+a])),
+						},
+						fromA: a,
+						fromB: b,
+					}
+				}
+			}
+			if k+b < len(v2) {
+				if l+1 < dp[a][b+1].loss {
+					dp[a][b+1] = dpCell{
+						loss: l + 1,
+						entry: entry{
+							rightOnly: true,
+							value:     imbalanced(reflect.ValueOf(v2[k+b])),
+						},
+						fromA: a,
+						fromB: b,
+					}
+				}
+			}
+			if k+a < len(v1) && k+b < len(v2) {
+				if v1[k+a] == v2[k+b] {
+					if l < dp[a+1][b+1].loss {
+						dp[a+1][b+1] = dpCell{
+							loss:  l,
+							entry: entry{value: same(reflect.ValueOf(v1[k+a]))},
+							fromA: a,
+							fromB: b,
+						}
+					}
+				}
+			}
+		}
+	}
+	a := len(dp) - 1
+	b := len(dp[a]) - 1
+	if dp[a][b].loss > 1_000_000 {
+		return nil, fmt.Errorf("faild to compute diff")
+	}
+
+	trailing := make([]entry, 0, len(v1)+len(v2))
+	for a, b := len(v1)-k, len(v2)-k; a > 0 || b > 0; {
+		cell := dp[a][b]
+		trailing = append(trailing, cell.entry)
+		if !(cell.fromA < a || cell.fromB < b) {
+			return nil, fmt.Errorf("infinite loop")
+		}
+		a = cell.fromA
+		b = cell.fromB
+	}
+	reverse(trailing)
+
+	entries := append(leading, trailing...)
+
+	return entries, nil
+}
+
 func reverse(entries []entry) {
 	for i, j := 0, len(entries)-1; i < j; i, j = i+1, j-1 {
 		entries[i], entries[j] = entries[j], entries[i]

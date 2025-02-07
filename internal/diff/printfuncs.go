@@ -65,15 +65,36 @@ func printSlice(t DiffTree, nx printNext) []doc.Doc {
 	}
 }
 
-func printString(t DiffTree, _ printNext) []doc.Doc {
+func printString(t DiffTree, nx printNext) []doc.Doc {
 	if t.loss == 0 {
 		return []doc.Doc{
 			doc.BothInline(quote(t.left.String())),
 		}
 	}
+	if t.split {
+		return []doc.Doc{
+			doc.LeftInline(quote(t.left.String())),
+			doc.RightInline(quote(t.right.String())),
+		}
+	}
+	var items []doc.Doc
+	for _, e := range t.entries {
+		docs := printString(e.value, nx)
+		for _, d := range docs {
+			if e.leftOnly {
+				d = d.Left()
+			} else if e.rightOnly {
+				d = d.Right()
+			}
+			items = append(items, d.AddSuffix(","))
+		}
+	}
 	return []doc.Doc{
-		doc.LeftInline(quote(t.left.String())),
-		doc.RightInline(quote(t.right.String())),
+		doc.Block(
+			doc.BothInline("string("),
+			items,
+			doc.BothInline(")"),
+		),
 	}
 }
 
