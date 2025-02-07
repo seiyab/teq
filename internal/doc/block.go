@@ -19,23 +19,25 @@ func (b block) print(depth int, buf *buffer) {
 }
 
 func (b block) Left() Doc {
-	var c block
-	c.open = b.open.Left()
-	for _, d := range b.contents {
-		c.contents = append(c.contents, d.Left())
+	var cs []Doc
+	cs, b.contents = b.contents, nil
+	b.open = b.open.Left()
+	for _, d := range cs {
+		b.contents = append(b.contents, d.Left())
 	}
-	c.close = c.close.Left()
-	return c
+	b.close = b.close.Left()
+	return b
 }
 
 func (b block) Right() Doc {
-	var c block
-	c.open = c.open.Right()
-	for _, d := range b.contents {
-		c.contents = append(c.contents, d.Right())
+	var cs []Doc
+	cs, b.contents = b.contents, nil
+	b.open = b.open.Right()
+	for _, d := range cs {
+		b.contents = append(b.contents, d.Right())
 	}
-	c.close = c.close.Right()
-	return c
+	b.close = b.close.Right()
+	return b
 }
 
 func (b block) AddPrefix(prefix string) Doc {
