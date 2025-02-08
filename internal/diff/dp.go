@@ -42,8 +42,8 @@ func mixedEntries[Value any, List any](
 		}
 	}
 	dp[0][0] = dpCell{loss: 0}
-	for a := 0; k+a < length(v1)+1; a++ {
-		for b := 0; k+b < length(v2)+1; b++ {
+	for b := 0; k+b < length(v2)+1; b++ {
+		for a := 0; k+a < length(v1)+1; a++ {
 			l := dp[a][b].loss
 			if k+a < length(v1) {
 				if l+1 < dp[a+1][b].loss {
@@ -77,10 +77,7 @@ func mixedEntries[Value any, List any](
 					return nil, err
 				}
 				tl := t.loss
-				if t.split {
-					tl = 2
-				}
-				if l+tl < dp[a+1][b+1].loss {
+				if !t.split && l+tl < dp[a+1][b+1].loss {
 					dp[a+1][b+1] = dpCell{
 						loss:  l + tl,
 						entry: entry{value: t},
