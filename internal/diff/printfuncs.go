@@ -79,19 +79,17 @@ func printString(t DiffTree, nx printNext) []doc.Doc {
 	}
 	var items []doc.Doc
 	for _, e := range t.entries {
-		docs := printString(e.value, nx)
-		for _, d := range docs {
-			if e.leftOnly {
-				d = d.Left()
-			} else if e.rightOnly {
-				d = d.Right()
-			}
-			items = append(items, d.AddSuffix(","))
+		if e.leftOnly {
+			items = append(items, doc.LeftInline(e.value.left.String()))
+		} else if e.rightOnly {
+			items = append(items, doc.RightInline(e.value.right.String()))
+		} else {
+			items = append(items, doc.BothInline(e.value.left.String()))
 		}
 	}
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline("string("),
+			doc.BothInline(t.left.Type().Name()+"("),
 			items,
 			doc.BothInline(")"),
 		),
