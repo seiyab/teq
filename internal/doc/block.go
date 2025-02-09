@@ -10,12 +10,21 @@ type block struct {
 	close    Doc
 }
 
-func (b block) print(depth int, buf *buffer) {
-	b.open.print(depth, buf)
+func (b block) print(depth int) virtualLines {
+	o := b.open.print(depth)
+	c := b.close.print(depth)
+
+	var body virtualLines
 	for _, d := range b.contents {
-		d.print(depth+1, buf)
+		ls := d.print(depth + 1)
+		body = append(body, ls...)
 	}
-	b.close.print(depth, buf)
+
+	if body.hasDiff() {
+		o = o.asContext()
+		c = c.asContext()
+	}
+	return append(append(o, body...), c...)
 }
 
 func (b block) Left() Doc {

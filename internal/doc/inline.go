@@ -20,16 +20,21 @@ type inline struct {
 	text    string
 }
 
-func (l inline) print(depth int, buf *buffer) {
+func (l inline) print(depth int) virtualLines {
 	var marker string = "  "
-	if l.onLeft && !l.onRight {
+	isLeft := l.onLeft && !l.onRight
+	isRight := l.onRight && !l.onLeft
+	if isLeft {
 		marker = "- "
-	} else if !l.onLeft && l.onRight {
+	} else if isRight {
 		marker = "+ "
 	}
-	buf.push(
-		marker + strings.Repeat(" ", depth*indentSize) + l.text,
-	)
+	return virtualLines{
+		{
+			isDiff: isLeft || isRight,
+			text:   marker + strings.Repeat(" ", depth*indentSize) + l.text,
+		},
+	}
 }
 
 func (l inline) Left() Doc {

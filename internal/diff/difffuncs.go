@@ -99,7 +99,6 @@ func stringDiff(v1, v2 reflect.Value, _ next) (DiffTree, error) {
 	if err != nil {
 		return DiffTree{}, err
 	}
-	fmt.Println("multiline", lossForIndexedEntries(es))
 	return DiffTree{
 		loss:    lossForIndexedEntries(es),
 		entries: es,

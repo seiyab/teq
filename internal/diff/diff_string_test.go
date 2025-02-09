@@ -133,6 +133,41 @@ func TestDiff_MultilineString(t *testing.T) {
 					`  )`,
 				}, "\n"),
 			},
+			{
+				name: "sight width",
+				left: strings.Join([]string{
+					"abc",
+					"def",
+					"ghi",
+					"jkl",
+					"mno",
+					"pqr",
+					"stu",
+					"vwx",
+					"yz",
+				}, "\n"),
+				right: strings.Join([]string{
+					"abc",
+					"def",
+					"ghi",
+					"jkl",
+					"pqr",
+					"stu",
+					"vwx",
+					"yz",
+				}, "\n"),
+				want: strings.Join([]string{
+					`  string(`,
+					`:`,
+					`    ghi`,
+					`    jkl`,
+					`-   mno`,
+					`    pqr`,
+					`    stu`,
+					`:`,
+					`  )`,
+				}, "\n"),
+			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				d, e := diff.New().Diff(tc.left, tc.right)

@@ -210,13 +210,7 @@ func TestDiff_Slice(t *testing.T) {
 			{
 				left:  []int{1, 2, 3},
 				right: []int{1, 2, 3},
-				want: strings.Join([]string{
-					`  []int{`,
-					`    1,`,
-					`    2,`,
-					`    3,`,
-					`  }`,
-				}, "\n"),
+				want:  "",
 			},
 			{
 				left:  []int{1, 2, 3},
@@ -301,28 +295,14 @@ func TestDiff_Slice(t *testing.T) {
 			{
 				left:  [][]int{{1, 2}, {3, 4}},
 				right: [][]int{{1, 2}, {3, 4}},
-				want: strings.Join([]string{
-					`  [][]int{`,
-					`    []int{`,
-					`      1,`,
-					`      2,`,
-					`    },`,
-					`    []int{`,
-					`      3,`,
-					`      4,`,
-					`    },`,
-					`  }`,
-				}, "\n"),
+				want:  "",
 			},
 			{
 				left:  [][]int{{1, 2}, {3, 4}},
 				right: [][]int{{1, 2}, {3, 5}},
 				want: strings.Join([]string{
 					`  [][]int{`,
-					`    []int{`,
-					`      1,`,
-					`      2,`,
-					`    },`,
+					`:`,
 					`    []int{`,
 					`      3,`,
 					`-     4,`,
@@ -336,8 +316,7 @@ func TestDiff_Slice(t *testing.T) {
 				right: [][]int{{1, 2}},
 				want: strings.Join([]string{
 					`  [][]int{`,
-					`    []int{`,
-					`      1,`,
+					`:`,
 					`      2,`,
 					`    },`,
 					`-   []int{`,
