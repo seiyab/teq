@@ -3,6 +3,7 @@ package diff
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -133,17 +134,45 @@ func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		return eachSide(v1, v2), nil
 	}
 
-	var entries []entry
-	// Process keys present in v1
+	var keys []reflect.Value
 	iter1 := v1.MapRange()
 	for iter1.Next() {
-		k := iter1.Key()
-		val1 := iter1.Value()
+		keys = append(keys, iter1.Key())
+	}
+	iter2 := v2.MapRange()
+	for iter2.Next() {
+		k := iter2.Key()
+		if v1.MapIndex(k).IsValid() {
+			continue
+		}
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return compareMapKey(keys[i], keys[j])
+	})
+
+	var entries []entry
+	for _, k := range keys {
+		val1 := v1.MapIndex(k)
 		val2 := v2.MapIndex(k)
+
+		if !val1.IsValid() && !val2.IsValid() {
+			continue // shouldn't happen
+		}
+
+		if !val1.IsValid() {
+			entries = append(entries, entry{
+				key:       stringifyKey(k),
+				value:     same(val2),
+				rightOnly: true,
+			})
+			continue
+		}
 
 		if !val2.IsValid() {
 			entries = append(entries, entry{
-				key:      fmt.Sprint(k.Interface()),
+				key:      stringifyKey(k),
 				value:    same(val1),
 				leftOnly: true,
 			})
@@ -155,22 +184,8 @@ func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 			return DiffTree{}, err
 		}
 		entries = append(entries, entry{
-			key:   fmt.Sprint(k.Interface()),
+			key:   stringifyKey(k),
 			value: d,
-		})
-	}
-
-	// Process keys present only in v2
-	iter2 := v2.MapRange()
-	for iter2.Next() {
-		k := iter2.Key()
-		if v1.MapIndex(k).IsValid() {
-			continue
-		}
-		entries = append(entries, entry{
-			key:       fmt.Sprint(k.Interface()),
-			value:     same(iter2.Value()),
-			rightOnly: true,
 		})
 	}
 
@@ -180,6 +195,26 @@ func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		left:    v1,
 		right:   v2,
 	}, nil
+}
+
+func compareMapKey(a, b reflect.Value) bool {
+	if a.Kind() != b.Kind() {
+		return stringifyKey(a) < stringifyKey(b)
+	}
+	switch a.Kind() {
+	case reflect.String:
+		return a.String() < b.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return a.Int() < b.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return a.Uint() < b.Uint()
+	case reflect.Float32, reflect.Float64:
+		return a.Float() < b.Float()
+	case reflect.Bool:
+		return !a.Bool() && b.Bool()
+	default:
+		return stringifyKey(a) < stringifyKey(b)
+	}
 }
 
 func field(v reflect.Value, idx int) reflect.Value {
