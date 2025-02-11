@@ -16,7 +16,7 @@ var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Interface:  notImplemented,
 	reflect.Pointer:    notImplemented,
 	reflect.Struct:     structDiff,
-	reflect.Map:        notImplemented,
+	reflect.Map:        mapDiff,
 	reflect.Func:       notImplemented,
 	reflect.Int:        intDiff,
 	reflect.Int8:       intDiff,
@@ -120,6 +120,66 @@ func primitiveDiff[T comparable](f func(v reflect.Value) T) diffFunc {
 		}
 		return eachSide(v1, v2), nil
 	}
+}
+
+func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
+	if v1.Type() != v2.Type() {
+		return eachSide(v1, v2), nil
+	}
+	if v1.IsNil() || v2.IsNil() {
+		if v1.IsNil() && v2.IsNil() {
+			return same(v1), nil
+		}
+		return eachSide(v1, v2), nil
+	}
+
+	var entries []entry
+	// Process keys present in v1
+	iter1 := v1.MapRange()
+	for iter1.Next() {
+		k := iter1.Key()
+		val1 := iter1.Value()
+		val2 := v2.MapIndex(k)
+
+		if !val2.IsValid() {
+			entries = append(entries, entry{
+				key:      fmt.Sprint(k.Interface()),
+				value:    same(val1),
+				leftOnly: true,
+			})
+			continue
+		}
+
+		d, err := nx(val1, val2)
+		if err != nil {
+			return DiffTree{}, err
+		}
+		entries = append(entries, entry{
+			key:   fmt.Sprint(k.Interface()),
+			value: d,
+		})
+	}
+
+	// Process keys present only in v2
+	iter2 := v2.MapRange()
+	for iter2.Next() {
+		k := iter2.Key()
+		if v1.MapIndex(k).IsValid() {
+			continue
+		}
+		entries = append(entries, entry{
+			key:       fmt.Sprint(k.Interface()),
+			value:     same(iter2.Value()),
+			rightOnly: true,
+		})
+	}
+
+	return DiffTree{
+		loss:    lossForKeyedEntries(entries),
+		entries: entries,
+		left:    v1,
+		right:   v2,
+	}, nil
 }
 
 func field(v reflect.Value, idx int) reflect.Value {

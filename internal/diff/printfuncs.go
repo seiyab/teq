@@ -17,7 +17,7 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Interface:  notImplementedPrint,
 	reflect.Pointer:    notImplementedPrint,
 	reflect.Struct:     printStruct,
-	reflect.Map:        notImplementedPrint,
+	reflect.Map:        printMap,
 	reflect.Func:       notImplementedPrint,
 	reflect.Int:        printInt,
 	reflect.Int8:       printInt,
@@ -120,6 +120,35 @@ func printStructEntry(e entry, nx printNext) []doc.Doc {
 		)
 	}
 	return items
+}
+
+func printMap(t DiffTree, nx printNext) []doc.Doc {
+	if t.left.IsNil() {
+		return []doc.Doc{
+			doc.BothInline(fmt.Sprintf("%s(nil)", t.left.Type().String())),
+		}
+	}
+
+	var items []doc.Doc
+	for _, e := range t.entries {
+		docs := nx(e.value)
+		for _, d := range docs {
+			if e.leftOnly {
+				d = d.Left()
+			} else if e.rightOnly {
+				d = d.Right()
+			}
+			items = append(items, d.AddPrefix(e.key+": ").AddSuffix(","))
+		}
+	}
+
+	return []doc.Doc{
+		doc.Block(
+			doc.BothInline(t.left.Type().String()+"{"),
+			items,
+			doc.BothInline("}"),
+		),
+	}
 }
 
 var printInt = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%d", v.Int()) })

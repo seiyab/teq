@@ -177,8 +177,11 @@ func TestDiff_MultilineString(t *testing.T) {
 				f := d.Format()
 				if f != tc.want {
 					t.Errorf("expected %q, got %q", tc.want, f)
-					t.Log(tc.want)
-					t.Log(f)
+					p, e := diff.New().Diff(tc.want, f)
+					if e != nil {
+						t.Fatal(e)
+					}
+					t.Log(p.Format())
 				}
 			})
 		}
