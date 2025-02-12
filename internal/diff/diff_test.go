@@ -271,16 +271,7 @@ func TestDiff_Slice(t *testing.T) {
 		} {
 			name := fmt.Sprintf("%v vs %v", tc.left, tc.right)
 			t.Run(name, func(t *testing.T) {
-				d, e := diff.New().Diff(tc.left, tc.right)
-				if e != nil {
-					t.Fatal(e)
-				}
-				f := d.Format()
-				if f != tc.want {
-					t.Errorf("expected %q, got %q", tc.want, f)
-					t.Log(tc.want)
-					t.Log(f)
-				}
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
@@ -350,16 +341,7 @@ func TestDiff_Slice(t *testing.T) {
 		} {
 			name := fmt.Sprintf("%v vs %v", tc.left, tc.right)
 			t.Run(name, func(t *testing.T) {
-				d, e := diff.New().Diff(tc.left, tc.right)
-				if e != nil {
-					t.Fatal(e)
-				}
-				f := d.Format()
-				if f != tc.want {
-					t.Errorf("expected %q, got %q", tc.want, f)
-					t.Log(tc.want)
-					t.Log(f)
-				}
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})

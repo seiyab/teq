@@ -70,19 +70,7 @@ func TestDiff_Map(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				d, e := diff.New().Diff(tc.left, tc.right)
-				if e != nil {
-					t.Fatal(e)
-				}
-				f := d.Format()
-				if f != tc.want {
-					t.Errorf("expected %q, got %q", tc.want, f)
-					p, e := diff.New().Diff(tc.want, f)
-					if e != nil {
-						t.Fatal(e)
-					}
-					t.Log(p.Format())
-				}
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
@@ -115,7 +103,7 @@ func TestDiff_Map(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				runMapTest(t, tc.left, tc.right, tc.want)
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
@@ -174,7 +162,7 @@ func TestDiff_Map(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				runMapTest(t, tc.left, tc.right, tc.want)
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
@@ -214,13 +202,13 @@ func TestDiff_Map(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				runMapTest(t, tc.left, tc.right, tc.want)
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
 }
 
-func runMapTest(t *testing.T, left, right any, want string) {
+func runTest(t *testing.T, left, right any, want string) {
 	t.Helper()
 	d, e := diff.New().Diff(left, right)
 	if e != nil {

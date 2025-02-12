@@ -3,8 +3,6 @@ package diff_test
 import (
 	"strings"
 	"testing"
-
-	"github.com/seiyab/teq/internal/diff"
 )
 
 func TestDiff_MultilineString(t *testing.T) {
@@ -170,19 +168,7 @@ func TestDiff_MultilineString(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				d, e := diff.New().Diff(tc.left, tc.right)
-				if e != nil {
-					t.Fatal(e)
-				}
-				f := d.Format()
-				if f != tc.want {
-					t.Errorf("expected %q, got %q", tc.want, f)
-					p, e := diff.New().Diff(tc.want, f)
-					if e != nil {
-						t.Fatal(e)
-					}
-					t.Log(p.Format())
-				}
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
