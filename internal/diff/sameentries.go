@@ -77,7 +77,7 @@ func mapEntries(v reflect.Value, nx nextEntries) []entry {
 func stringifyKey(v reflect.Value) string {
 	switch v.Kind() {
 	case reflect.String:
-		return v.String()
+		return fmt.Sprintf("%q", v.String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return fmt.Sprintf("%d", v.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
