@@ -7,9 +7,7 @@ import (
 	"github.com/seiyab/teq/internal/doc"
 )
 
-// maybe printNext isn't needed
-type printNext func(t diffTree) []doc.Doc
-type printFunc = func(t mixed, n printNext) []doc.Doc
+type printFunc = func(t mixed) []doc.Doc
 
 var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Array:      notImplementedPrint,
@@ -39,14 +37,14 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Complex128: printComplex,
 }
 
-func notImplementedPrint(t mixed, n printNext) []doc.Doc {
+func notImplementedPrint(t mixed) []doc.Doc {
 	panic("not implemented")
 }
 
-func printSlice(m mixed, nx printNext) []doc.Doc {
+func printSlice(m mixed) []doc.Doc {
 	var items []doc.Doc
 	for _, e := range m.entries {
-		docs := nx(e.value)
+		docs := e.value.docs()
 		for _, d := range docs {
 			if e.leftOnly {
 				d = d.Left()
@@ -66,7 +64,7 @@ func printSlice(m mixed, nx printNext) []doc.Doc {
 	}
 }
 
-func printString(m mixed, nx printNext) []doc.Doc {
+func printString(m mixed) []doc.Doc {
 	if m.loss() == 0 {
 		return []doc.Doc{
 			doc.BothInline(quote(m.sample.String())),
@@ -96,10 +94,10 @@ func printString(m mixed, nx printNext) []doc.Doc {
 	}
 }
 
-func printStruct(m mixed, nx printNext) []doc.Doc {
+func printStruct(m mixed) []doc.Doc {
 	var items []doc.Doc
 	for _, e := range m.entries {
-		items = append(items, printStructEntry(e, nx)...)
+		items = append(items, printStructEntry(e)...)
 	}
 	return []doc.Doc{
 		doc.Block(
@@ -110,8 +108,8 @@ func printStruct(m mixed, nx printNext) []doc.Doc {
 	}
 }
 
-func printStructEntry(e entry, nx printNext) []doc.Doc {
-	docs := nx(e.value)
+func printStructEntry(e entry) []doc.Doc {
+	docs := e.value.docs()
 	var items []doc.Doc
 	for _, d := range docs {
 		items = append(
@@ -122,7 +120,7 @@ func printStructEntry(e entry, nx printNext) []doc.Doc {
 	return items
 }
 
-func printMap(m mixed, nx printNext) []doc.Doc {
+func printMap(m mixed) []doc.Doc {
 	if m.sample.IsNil() {
 		return []doc.Doc{
 			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
@@ -131,7 +129,7 @@ func printMap(m mixed, nx printNext) []doc.Doc {
 
 	var items []doc.Doc
 	for _, e := range m.entries {
-		docs := nx(e.value)
+		docs := e.value.docs()
 		for _, d := range docs {
 			if e.leftOnly {
 				d = d.Left()
@@ -158,7 +156,7 @@ var printFloat = printPrimitive(func(v reflect.Value) string { return fmt.Sprint
 var printComplex = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%f", v.Complex()) })
 
 func printPrimitive(f func(v reflect.Value) string) printFunc {
-	return func(m mixed, _ printNext) []doc.Doc {
+	return func(m mixed) []doc.Doc {
 		return []doc.Doc{doc.BothInline(f(m.sample))}
 	}
 }

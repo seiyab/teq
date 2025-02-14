@@ -52,9 +52,7 @@ func (m mixed) docs() []doc.Doc {
 	if !ok {
 		panic("not implemented: " + m.sample.Kind().String())
 	}
-	return f(m, func(t diffTree) []doc.Doc {
-		return t.docs()
-	})
+	return f(m)
 }
 
 func (m mixed) loss() float64 {
