@@ -10,7 +10,7 @@ import (
 type printFunc = func(t mixed) []doc.Doc
 
 var printFuncs = map[reflect.Kind]printFunc{
-	reflect.Array:      notImplementedPrint,
+	reflect.Array:      printSlice,
 	reflect.Slice:      printSlice,
 	reflect.Chan:       notImplementedPrint,
 	reflect.Interface:  notImplementedPrint,

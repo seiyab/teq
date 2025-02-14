@@ -19,7 +19,7 @@ func entriesOf(v reflect.Value) []entry {
 var entriesFuncs = map[reflect.Kind]entriesFunc{}
 
 func init() {
-	entriesFuncs[reflect.Array] = entriesNotImplemented
+	entriesFuncs[reflect.Array] = sliceEntries
 	entriesFuncs[reflect.Slice] = sliceEntries
 	entriesFuncs[reflect.Interface] = entriesNotImplemented
 	entriesFuncs[reflect.Struct] = structEntries

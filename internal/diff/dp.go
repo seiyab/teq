@@ -113,7 +113,8 @@ func mixedEntries[Value any, List any](
 }
 
 func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
-	if v1.Kind() != reflect.Slice || v2.Kind() != reflect.Slice {
+	if v1.Kind() != reflect.Slice && v1.Kind() != reflect.Array ||
+		v2.Kind() != reflect.Slice && v2.Kind() != reflect.Array {
 		return nil, errors.New("unexpected kind")
 	}
 	es, err := mixedEntries(

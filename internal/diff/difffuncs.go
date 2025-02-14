@@ -11,7 +11,7 @@ type next func(v1, v2 reflect.Value) (diffTree, error)
 type diffFunc = func(v1, v2 reflect.Value, n next) (diffTree, error)
 
 var diffFuncs = map[reflect.Kind]diffFunc{
-	reflect.Array:      notImplemented,
+	reflect.Array:      sliceDiff,
 	reflect.Slice:      sliceDiff,
 	reflect.Chan:       notImplemented,
 	reflect.Interface:  notImplemented,
@@ -46,7 +46,7 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.Type() != v2.Type() {
 		return nil, fmt.Errorf("unexpected type mismatch")
 	}
-	if v1.IsNil() || v2.IsNil() {
+	if v1.Kind() == reflect.Slice && (v1.IsNil() || v2.IsNil()) {
 		if v1.IsNil() && v2.IsNil() {
 			return same(v1), nil
 		}
