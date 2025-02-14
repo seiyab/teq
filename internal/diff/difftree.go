@@ -8,70 +8,85 @@ import (
 )
 
 type DiffTree struct {
-	loss    float64
-	split   bool
-	entries []entry
-	left    reflect.Value
-	right   reflect.Value
+	inner diffTree
 }
 
-func same(v reflect.Value) DiffTree {
-	return DiffTree{
-		loss:    0,
-		entries: entriesOf(v),
-		left:    v,
-		right:   v,
+type diffTree interface {
+	docs() []doc.Doc
+	loss() float64
+}
+
+var _ diffTree = split{}
+var _ diffTree = mixed{}
+
+type split struct {
+	left  diffTree
+	right diffTree
+}
+
+func (s split) docs() []doc.Doc {
+	var ds []doc.Doc
+	l := s.left.docs()
+	for _, d := range l {
+		ds = append(ds, d.Left())
+	}
+	r := s.right.docs()
+	for _, d := range r {
+		ds = append(ds, d.Right())
+	}
+	return ds
+}
+
+func (s split) loss() float64 {
+	return 1
+}
+
+type mixed struct {
+	distance float64
+	sample   reflect.Value
+	entries  []entry
+}
+
+func (m mixed) docs() []doc.Doc {
+	f, ok := printFuncs[m.sample.Kind()]
+	if !ok {
+		panic("not implemented: " + m.sample.Kind().String())
+	}
+	return f(m, func(t diffTree) []doc.Doc {
+		return t.docs()
+	})
+}
+
+func (m mixed) loss() float64 {
+	return m.distance
+}
+
+func pure(v reflect.Value) diffTree {
+	return mixed{
+		distance: 0,
+		sample:   v,
+		entries:  entriesOf(v),
 	}
 }
 
-func imbalanced(v reflect.Value) DiffTree {
-	return same(v) // smells bad :(
+func same(v reflect.Value) diffTree {
+	return pure(v)
 }
 
-func eachSide(left, right reflect.Value) DiffTree {
-	return DiffTree{
-		loss:  1,
-		split: true,
-		entries: []entry{
-			{value: imbalanced(left), leftOnly: true},
-			{value: imbalanced(right), rightOnly: true},
-		},
-		left:  left,
-		right: right,
+func imbalanced(v reflect.Value) diffTree {
+	return pure(v)
+}
+
+func eachSide(left, right reflect.Value) diffTree {
+	return split{
+		left:  pure(left),
+		right: pure(right),
 	}
 }
 
 func (d DiffTree) Format() string {
-	o := d.docs()
+	o := d.inner.docs()
 	return doc.PrintDoc(o)
-}
-
-func (d DiffTree) docs() []doc.Doc {
-	if d.split {
-		if len(d.entries) != 2 {
-			panic("unexpected entries length")
-		}
-		var ds []doc.Doc
-		l := d.entries[0].value.docs()
-		for _, d := range l {
-			ds = append(ds, d.Left())
-		}
-		r := d.entries[1].value.docs()
-		for _, d := range r {
-			ds = append(ds, d.Right())
-		}
-		return ds
-	}
-	if d.left.Kind() != d.right.Kind() {
-		panic("kind mismatch: shouldn't happen. it's a bug if you see this")
-	}
-	f, ok := printFuncs[d.left.Kind()]
-	if !ok {
-		panic("not implemented: " + d.left.Kind().String())
-	}
-	return f(d, func(t DiffTree) []doc.Doc {
-		return t.docs()
-	})
 }
 
 func quote(s string) string {
@@ -80,7 +95,7 @@ func quote(s string) string {
 
 type entry struct {
 	key       string
-	value     DiffTree
+	value     diffTree
 	leftOnly  bool
 	rightOnly bool
 }
@@ -96,7 +111,7 @@ func lossForKeyedEntries(es []entry) float64 {
 			total += 1
 			continue
 		}
-		total += e.value.loss
+		total += e.value.loss()
 	}
 	return total / (max * float64(len(es)))
 }
@@ -109,18 +124,21 @@ func lossForIndexedEntries(es []entry) float64 {
 	n := 0.
 	total := 0.
 	for _, e := range es {
-		if e.value.split {
-			n += 2
+		switch t := e.value.(type) {
+		case split:
 			total += 2
-			continue
-		}
-		if e.leftOnly || e.rightOnly {
+			n += 2
+		case mixed:
+			if e.leftOnly || e.rightOnly {
+				n += 1
+				total += 1
+				break
+			}
+			total += t.loss()
 			n += 1
-			total += 1
-			continue
+		default:
+			panic("unexpected type: " + fmt.Sprintf("%T", t))
 		}
-		total += e.value.loss
-		n += 1
 	}
 	return max * total / n
 }

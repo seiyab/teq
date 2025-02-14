@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-type next func(v1, v2 reflect.Value) (DiffTree, error)
-type diffFunc = func(v1, v2 reflect.Value, n next) (DiffTree, error)
+type next func(v1, v2 reflect.Value) (diffTree, error)
+type diffFunc = func(v1, v2 reflect.Value, n next) (diffTree, error)
 
 var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Array:      notImplemented,
@@ -38,13 +38,13 @@ var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Complex128: complexDiff,
 }
 
-func notImplemented(v1, v2 reflect.Value, n next) (DiffTree, error) {
-	return DiffTree{}, fmt.Errorf("not implemented")
+func notImplemented(v1, v2 reflect.Value, n next) (diffTree, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
-func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
+func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.Type() != v2.Type() {
-		return DiffTree{}, fmt.Errorf("unexpected type mismatch")
+		return nil, fmt.Errorf("unexpected type mismatch")
 	}
 	if v1.IsNil() || v2.IsNil() {
 		if v1.IsNil() && v2.IsNil() {
@@ -54,18 +54,17 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 	}
 	es, err := sliceMixedEntries(v1, v2, nx)
 	if err != nil {
-		return DiffTree{}, err
+		return nil, err
 	}
 
-	return DiffTree{
-		loss:    lossForIndexedEntries(es),
-		entries: es,
-		left:    v1,
-		right:   v2,
+	return mixed{
+		distance: lossForIndexedEntries(es),
+		entries:  es,
+		sample:   v1,
 	}, nil
 }
 
-func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
+func structDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.Type() != v2.Type() {
 		return eachSide(v1, v2), nil
 	}
@@ -74,19 +73,18 @@ func structDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		key := v1.Type().Field(i).Name
 		vd, err := nx(field(v1, i), field(v2, i))
 		if err != nil {
-			return DiffTree{}, err
+			return nil, err
 		}
 		entries = append(entries, entry{key: key, value: vd, leftOnly: true, rightOnly: true})
 	}
-	return DiffTree{
-		loss:    lossForKeyedEntries(entries),
-		entries: entries,
-		left:    v1,
-		right:   v2,
+	return mixed{
+		distance: lossForKeyedEntries(entries),
+		entries:  entries,
+		sample:   v1,
 	}, nil
 }
 
-func stringDiff(v1, v2 reflect.Value, _ next) (DiffTree, error) {
+func stringDiff(v1, v2 reflect.Value, _ next) (diffTree, error) {
 	s1, s2 := v1.String(), v2.String()
 	if s1 == s2 {
 		return same(v1), nil
@@ -98,13 +96,12 @@ func stringDiff(v1, v2 reflect.Value, _ next) (DiffTree, error) {
 	}
 	es, err := multiLineStringEntries(lines1, lines2)
 	if err != nil {
-		return DiffTree{}, err
+		return nil, err
 	}
-	return DiffTree{
-		loss:    lossForIndexedEntries(es),
-		entries: es,
-		left:    v1,
-		right:   v2,
+	return mixed{
+		distance: lossForIndexedEntries(es),
+		entries:  es,
+		sample:   v1,
 	}, nil
 }
 
@@ -115,7 +112,7 @@ var floatDiff = primitiveDiff(func(v reflect.Value) float64 { return v.Float() }
 var complexDiff = primitiveDiff(func(v reflect.Value) complex128 { return v.Complex() })
 
 func primitiveDiff[T comparable](f func(v reflect.Value) T) diffFunc {
-	return func(v1, v2 reflect.Value, _ next) (DiffTree, error) {
+	return func(v1, v2 reflect.Value, _ next) (diffTree, error) {
 		if f(v1) == f(v2) {
 			return same(v1), nil
 		}
@@ -123,7 +120,7 @@ func primitiveDiff[T comparable](f func(v reflect.Value) T) diffFunc {
 	}
 }
 
-func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
+func mapDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.Type() != v2.Type() {
 		return eachSide(v1, v2), nil
 	}
@@ -181,7 +178,7 @@ func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 
 		d, err := nx(val1, val2)
 		if err != nil {
-			return DiffTree{}, err
+			return nil, err
 		}
 		entries = append(entries, entry{
 			key:   stringifyKey(k),
@@ -189,11 +186,10 @@ func mapDiff(v1, v2 reflect.Value, nx next) (DiffTree, error) {
 		})
 	}
 
-	return DiffTree{
-		loss:    lossForKeyedEntries(entries),
-		entries: entries,
-		left:    v1,
-		right:   v2,
+	return mixed{
+		distance: lossForKeyedEntries(entries),
+		entries:  entries,
+		sample:   v1,
 	}, nil
 }
 

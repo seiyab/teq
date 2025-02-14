@@ -7,8 +7,9 @@ import (
 	"github.com/seiyab/teq/internal/doc"
 )
 
-type printNext func(t DiffTree) []doc.Doc
-type printFunc = func(t DiffTree, n printNext) []doc.Doc
+// maybe printNext isn't needed
+type printNext func(t diffTree) []doc.Doc
+type printFunc = func(t mixed, n printNext) []doc.Doc
 
 var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Array:      notImplementedPrint,
@@ -38,13 +39,13 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Complex128: printComplex,
 }
 
-func notImplementedPrint(t DiffTree, n printNext) []doc.Doc {
+func notImplementedPrint(t mixed, n printNext) []doc.Doc {
 	panic("not implemented")
 }
 
-func printSlice(t DiffTree, nx printNext) []doc.Doc {
+func printSlice(m mixed, nx printNext) []doc.Doc {
 	var items []doc.Doc
-	for _, e := range t.entries {
+	for _, e := range m.entries {
 		docs := nx(e.value)
 		for _, d := range docs {
 			if e.leftOnly {
@@ -58,52 +59,51 @@ func printSlice(t DiffTree, nx printNext) []doc.Doc {
 
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(t.left.Type().String()+"{"),
+			doc.BothInline(m.sample.Type().String()+"{"),
 			items,
 			doc.BothInline("}"),
 		),
 	}
 }
 
-func printString(t DiffTree, nx printNext) []doc.Doc {
-	if t.loss == 0 {
+func printString(m mixed, nx printNext) []doc.Doc {
+	if m.loss() == 0 {
 		return []doc.Doc{
-			doc.BothInline(quote(t.left.String())),
-		}
-	}
-	if t.split {
-		return []doc.Doc{
-			doc.LeftInline(quote(t.left.String())),
-			doc.RightInline(quote(t.right.String())),
+			doc.BothInline(quote(m.sample.String())),
 		}
 	}
 	var items []doc.Doc
-	for _, e := range t.entries {
+	for _, e := range m.entries {
+		t, ok := e.value.(mixed)
+		if !ok {
+			panic("unexpected type")
+		}
+		s := t.sample.String()
 		if e.leftOnly {
-			items = append(items, doc.LeftInline(e.value.left.String()))
+			items = append(items, doc.LeftInline(s))
 		} else if e.rightOnly {
-			items = append(items, doc.RightInline(e.value.right.String()))
+			items = append(items, doc.RightInline(s))
 		} else {
-			items = append(items, doc.BothInline(e.value.left.String()))
+			items = append(items, doc.BothInline(s))
 		}
 	}
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(t.left.Type().Name()+"("),
+			doc.BothInline(m.sample.Type().Name()+"("),
 			items,
 			doc.BothInline(")"),
 		),
 	}
 }
 
-func printStruct(t DiffTree, nx printNext) []doc.Doc {
+func printStruct(m mixed, nx printNext) []doc.Doc {
 	var items []doc.Doc
-	for _, e := range t.entries {
+	for _, e := range m.entries {
 		items = append(items, printStructEntry(e, nx)...)
 	}
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(t.left.Type().String()+"{"),
+			doc.BothInline(m.sample.Type().String()+"{"),
 			items,
 			doc.BothInline("}"),
 		),
@@ -122,15 +122,15 @@ func printStructEntry(e entry, nx printNext) []doc.Doc {
 	return items
 }
 
-func printMap(t DiffTree, nx printNext) []doc.Doc {
-	if t.left.IsNil() {
+func printMap(m mixed, nx printNext) []doc.Doc {
+	if m.sample.IsNil() {
 		return []doc.Doc{
-			doc.BothInline(fmt.Sprintf("%s(nil)", t.left.Type().String())),
+			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
 		}
 	}
 
 	var items []doc.Doc
-	for _, e := range t.entries {
+	for _, e := range m.entries {
 		docs := nx(e.value)
 		for _, d := range docs {
 			if e.leftOnly {
@@ -144,7 +144,7 @@ func printMap(t DiffTree, nx printNext) []doc.Doc {
 
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(t.left.Type().String()+"{"),
+			doc.BothInline(m.sample.Type().String()+"{"),
 			items,
 			doc.BothInline("}"),
 		),
@@ -158,7 +158,7 @@ var printFloat = printPrimitive(func(v reflect.Value) string { return fmt.Sprint
 var printComplex = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%f", v.Complex()) })
 
 func printPrimitive(f func(v reflect.Value) string) printFunc {
-	return func(t DiffTree, _ printNext) []doc.Doc {
-		return []doc.Doc{doc.BothInline(f(t.left))}
+	return func(m mixed, _ printNext) []doc.Doc {
+		return []doc.Doc{doc.BothInline(f(m.sample))}
 	}
 }

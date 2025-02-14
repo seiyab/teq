@@ -18,7 +18,11 @@ func (d Differ) Diff(x, y any) (DiffTree, error) {
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
 	p := diffProcess{differ: d}
-	return p.diff(v1, v2, 0)
+	t, err := p.diff(v1, v2, 0)
+	if err != nil {
+		return DiffTree{}, err
+	}
+	return DiffTree{inner: t}, nil
 }
 
 type diffProcess struct {
@@ -37,10 +41,10 @@ const maxDepth = 100
 func (p diffProcess) diff(
 	v1, v2 reflect.Value,
 	depth int,
-) (DiffTree, error) {
+) (diffTree, error) {
 	d := p.differ
 	if depth > maxDepth {
-		return DiffTree{}, fmt.Errorf("maximum depth exceeded")
+		return nil, fmt.Errorf("maximum depth exceeded")
 	}
 	if d.reflectEqual != nil {
 		if d.reflectEqual(v1, v2) {
@@ -52,10 +56,10 @@ func (p diffProcess) diff(
 		}
 	}
 	if !v1.IsValid() || !v2.IsValid() {
-		return DiffTree{}, fmt.Errorf("not implemented")
+		return nil, fmt.Errorf("not implemented")
 	}
 	if v1.Type() != v2.Type() {
-		return DiffTree{}, fmt.Errorf("not implemented")
+		return nil, fmt.Errorf("not implemented")
 	}
 
 	/*
@@ -70,7 +74,7 @@ func (p diffProcess) diff(
 	if !ok {
 		panic("diff is not defined for " + v1.Type().String())
 	}
-	var n next = func(v1, v2 reflect.Value) (DiffTree, error) {
+	var n next = func(v1, v2 reflect.Value) (diffTree, error) {
 		return p.diff(v1, v2, depth+1)
 	}
 	return diffFunc(v1, v2, n)

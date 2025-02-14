@@ -221,6 +221,8 @@ func runTest(t *testing.T, left, right any, want string) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		t.Log(p.Format())
+		for _, l := range strings.Split(p.Format(), "\n") {
+			t.Log(l)
+		}
 	}
 }

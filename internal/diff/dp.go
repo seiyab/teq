@@ -19,7 +19,7 @@ func mixedEntries[Value any, List any](
 	length func(List) int,
 	getValue func(List, int) Value,
 	getReflect func(List, int) reflect.Value,
-	nx func(Value, Value) (DiffTree, error),
+	nx func(Value, Value) (diffTree, error),
 ) ([]entry, error) {
 	leading := make([]entry, 0)
 	for i := 0; i < length(v1) && i < length(v2); i++ {
@@ -27,7 +27,7 @@ func mixedEntries[Value any, List any](
 		if err != nil {
 			return nil, err
 		}
-		if t.loss > 0 {
+		if t.loss() > 0 {
 			break
 		}
 		leading = append(leading, entry{value: same(getReflect(v1, i))})
@@ -76,11 +76,12 @@ func mixedEntries[Value any, List any](
 				if err != nil {
 					return nil, err
 				}
-				tl := t.loss
-				if !t.split && l+tl < dp[a+1][b+1].loss {
+				tl := t.loss()
+				m, ok := t.(mixed)
+				if ok && l+tl < dp[a+1][b+1].loss {
 					dp[a+1][b+1] = dpCell{
 						loss:  l + tl,
-						entry: entry{value: t},
+						entry: entry{value: m},
 						fromA: a,
 						fromB: b,
 					}
@@ -134,7 +135,7 @@ func multiLineStringEntries(v1, v2 []string) ([]entry, error) {
 		func(v []string) int { return len(v) },
 		func(v []string, i int) string { return v[i] },
 		func(v []string, i int) reflect.Value { return reflect.ValueOf(v[i]) },
-		func(v1, v2 string) (DiffTree, error) {
+		func(v1, v2 string) (diffTree, error) {
 			return stringDiff(reflect.ValueOf(v1), reflect.ValueOf(v2), nil)
 		},
 	)
