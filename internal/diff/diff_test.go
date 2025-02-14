@@ -111,16 +111,7 @@ func TestDiff_Struct(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				d, e := diff.New().Diff(tc.left, tc.right)
-				if e != nil {
-					t.Fatal(e)
-				}
-				f := d.Format()
-				if f != tc.want {
-					t.Errorf("expected %q, got %q", tc.want, f)
-					t.Log(f)
-					t.Log(tc.want)
-				}
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
@@ -183,17 +174,26 @@ func TestDiff_Struct(t *testing.T) {
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				d, e := diff.New().Diff(tc.left, tc.right)
-				if e != nil {
-					t.Fatal(e)
-				}
-				f := d.Format()
-				if f != tc.want {
-					t.Errorf("expected %q, got %q", tc.want, f)
-					t.Log(f)
-					t.Log(tc.want)
-				}
+				runTest(t, tc.left, tc.right, tc.want)
 			})
 		}
 	})
+}
+
+func runTest(t *testing.T, left, right any, want string) {
+	t.Helper()
+	d, err := diff.DiffString(left, right)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d != want {
+		t.Errorf("expected %q, got %q", want, d)
+		p, e := diff.New().Diff(want, d)
+		if e != nil {
+			t.Fatal(e)
+		}
+		for _, l := range strings.Split(p.Format(), "\n") {
+			t.Log(l)
+		}
+	}
 }

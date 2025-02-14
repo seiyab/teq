@@ -3,8 +3,6 @@ package diff_test
 import (
 	"strings"
 	"testing"
-
-	"github.com/seiyab/teq/internal/diff"
 )
 
 func TestDiff_Map(t *testing.T) {
@@ -206,23 +204,4 @@ func TestDiff_Map(t *testing.T) {
 			})
 		}
 	})
-}
-
-func runTest(t *testing.T, left, right any, want string) {
-	t.Helper()
-	d, e := diff.New().Diff(left, right)
-	if e != nil {
-		t.Fatal(e)
-	}
-	f := d.Format()
-	if f != want {
-		t.Errorf("expected %q, got %q", want, f)
-		p, e := diff.New().Diff(want, f)
-		if e != nil {
-			t.Fatal(e)
-		}
-		for _, l := range strings.Split(p.Format(), "\n") {
-			t.Log(l)
-		}
-	}
 }

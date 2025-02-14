@@ -6,6 +6,15 @@ import (
 	"unsafe"
 )
 
+func DiffString(x, y any) (string, error) {
+	d := New()
+	t, err := d.Diff(x, y)
+	if err != nil {
+		return "", err
+	}
+	return t.Format(), nil
+}
+
 type Differ struct {
 	reflectEqual func(v1, v2 reflect.Value) bool
 }
