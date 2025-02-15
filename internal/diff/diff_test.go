@@ -71,6 +71,76 @@ func TestDiff_Primitive(t *testing.T) {
 	})
 }
 
+func TestDiff_Func(t *testing.T) {
+	t.Run("same", func(t *testing.T) {
+		// NOTE: reflect.DeepEqual cannot compare functions.
+		expected := strings.Join([]string{
+			`- func(*testing.T) { ... }`,
+			`+ func(*testing.T) { ... }`,
+		}, "\n")
+		runTest(t, TestDiff_Func, TestDiff_Func, expected)
+	})
+
+	type f = func()
+	t.Run("both nil", func(t *testing.T) {
+		runTest(t, f(nil), f(nil), "")
+	})
+
+	t.Run("left nil", func(t *testing.T) {
+		t.Skip()
+		expected := strings.Join([]string{
+			`- func(t *testing.T) { ... }`,
+			`+ func()(nil)`,
+		}, "\n")
+		runTest(t, TestDiff_Primitive, f(nil), expected)
+	})
+}
+
+func TestDiff_Pointer(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		runTest(t, (*int)(nil), (*int)(nil), "")
+	})
+
+	t.Run("same", func(t *testing.T) {
+		runTest(t, ref(100), ref(100), "")
+	})
+
+	t.Run("different", func(t *testing.T) {
+		expected := strings.Join([]string{
+			`- 100`,
+			`+ 200`,
+		}, "\n")
+		runTest(t, ref(100), ref(200), expected)
+	})
+}
+
+func ref[T any](x T) *T {
+	return &x
+}
+
+func TestDiff_Chan(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		type s struct {
+			c chan bool
+		}
+		runTest(t, s{c: nil}, s{c: make(chan bool)}, strings.Join([]string{
+			`  diff_test.s{`,
+			`-   c: chan bool(nil),`,
+			`+   c: chan bool,`,
+			`  }`,
+		}, "\n"))
+	})
+
+	t.Run("different", func(t *testing.T) {
+		expected := strings.Join([]string{
+			`- <-chan string`,
+			`+ <-chan string`,
+		}, "\n")
+		runTest(t, make(<-chan string), make(<-chan string), expected)
+	})
+
+}
+
 func runTest(t *testing.T, left, right any, want string) {
 	t.Helper()
 	d, err := diff.DiffString(left, right)

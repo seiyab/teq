@@ -12,12 +12,12 @@ type printFunc = func(t mixed) []doc.Doc
 var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Array:      printSlice,
 	reflect.Slice:      printSlice,
-	reflect.Chan:       notImplementedPrint,
+	reflect.Chan:       printChan,
 	reflect.Interface:  notImplementedPrint,
-	reflect.Pointer:    notImplementedPrint,
+	reflect.Pointer:    printPointer,
 	reflect.Struct:     printStruct,
 	reflect.Map:        printMap,
-	reflect.Func:       notImplementedPrint,
+	reflect.Func:       printFn,
 	reflect.Int:        printInt,
 	reflect.Int8:       printInt,
 	reflect.Int16:      printInt,
@@ -64,6 +64,18 @@ func printSlice(m mixed) []doc.Doc {
 	}
 }
 
+func printChan(m mixed) []doc.Doc {
+	ty := m.sample.Type().String()
+	if m.sample.IsNil() {
+		return []doc.Doc{
+			doc.BothInline(fmt.Sprintf("%s(nil)", ty)),
+		}
+	}
+	return []doc.Doc{
+		doc.BothInline(ty),
+	}
+}
+
 func printString(m mixed) []doc.Doc {
 	if m.loss() == 0 {
 		return []doc.Doc{
@@ -92,6 +104,16 @@ func printString(m mixed) []doc.Doc {
 			doc.BothInline(")"),
 		),
 	}
+}
+
+func printPointer(m mixed) []doc.Doc {
+	if m.sample.IsNil() {
+		return []doc.Doc{
+			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
+		}
+	}
+	// TODO: cycle detection
+	return same(m.sample.Elem()).docs()
 }
 
 func printStruct(m mixed) []doc.Doc {
@@ -146,6 +168,18 @@ func printMap(m mixed) []doc.Doc {
 			items,
 			doc.BothInline("}"),
 		),
+	}
+}
+
+func printFn(m mixed) []doc.Doc {
+	ty := m.sample.Type().String()
+	if m.sample.IsNil() {
+		return []doc.Doc{
+			doc.BothInline(fmt.Sprintf("%s(nil)", ty)),
+		}
+	}
+	return []doc.Doc{
+		doc.BothInline(fmt.Sprintf("%s { ... }", ty)),
 	}
 }
 

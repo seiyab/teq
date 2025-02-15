@@ -13,12 +13,12 @@ type diffFunc = func(v1, v2 reflect.Value, n next) (diffTree, error)
 var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Array:      sliceDiff,
 	reflect.Slice:      sliceDiff,
-	reflect.Chan:       notImplemented,
+	reflect.Chan:       alwaysSplitDiff,
 	reflect.Interface:  notImplemented,
-	reflect.Pointer:    notImplemented,
+	reflect.Pointer:    pointerDiff,
 	reflect.Struct:     structDiff,
 	reflect.Map:        mapDiff,
-	reflect.Func:       notImplemented,
+	reflect.Func:       alwaysSplitDiff,
 	reflect.Int:        intDiff,
 	reflect.Int8:       intDiff,
 	reflect.Int16:      intDiff,
@@ -42,6 +42,10 @@ func notImplemented(v1, v2 reflect.Value, n next) (diffTree, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
+func alwaysSplitDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
+	return eachSide(v1, v2), nil
+}
+
 func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.Type() != v2.Type() {
 		return nil, fmt.Errorf("unexpected type mismatch")
@@ -62,6 +66,17 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 		entries:  es,
 		sample:   v1,
 	}, nil
+}
+
+func pointerDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
+	if v1.IsNil() && v2.IsNil() {
+		return same(v1), nil
+	}
+	if v1.UnsafePointer() == v2.UnsafePointer() {
+		// TODO: cycle detection
+		return same(v1.Elem()), nil
+	}
+	return nx(v1.Elem(), v2.Elem())
 }
 
 func structDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
