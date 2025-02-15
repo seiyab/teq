@@ -138,7 +138,33 @@ func TestDiff_Chan(t *testing.T) {
 		}, "\n")
 		runTest(t, make(<-chan string), make(<-chan string), expected)
 	})
+}
 
+func TestDiff_TypeMismatch(t *testing.T) {
+	t.Run("struct vs struct", func(t *testing.T) {
+		type s struct {
+			i int
+		}
+		type u struct {
+			i int
+		}
+		runTest(t, s{1}, u{1}, strings.Join([]string{
+			`- diff_test.s{`,
+			`-   i: 1,`,
+			`- }`,
+			`+ diff_test.u{`,
+			`+   i: 1,`,
+			`+ }`,
+		}, "\n"))
+	})
+
+	t.Run("string vs map", func(t *testing.T) {
+		runTest(t, "hello", map[string]int{}, strings.Join([]string{
+			`- "hello"`,
+			`+ map[string]int{`,
+			`+ }`,
+		}, "\n"))
+	})
 }
 
 func runTest(t *testing.T, left, right any, want string) {

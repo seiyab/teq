@@ -65,10 +65,10 @@ func (p diffProcess) diff(
 		}
 	}
 	if !v1.IsValid() || !v2.IsValid() {
-		return nil, fmt.Errorf("not implemented")
+		return nil, fmt.Errorf("invalid value")
 	}
 	if v1.Type() != v2.Type() {
-		return nil, fmt.Errorf("not implemented")
+		return eachSide(v1, v2), nil
 	}
 
 	/*
