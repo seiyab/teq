@@ -113,7 +113,11 @@ func printPointer(m mixed) []doc.Doc {
 		}
 	}
 	// TODO: cycle detection
-	return same(m.sample.Elem()).docs()
+	docs := m.entries[0].value.docs()
+	if len(docs) > 0 {
+		docs[0] = docs[0].AddPrefix("&")
+	}
+	return docs
 }
 
 func printStruct(m mixed) []doc.Doc {

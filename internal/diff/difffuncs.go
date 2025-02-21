@@ -52,7 +52,7 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	}
 	if v1.Kind() == reflect.Slice && (v1.IsNil() || v2.IsNil()) {
 		if v1.IsNil() && v2.IsNil() {
-			return same(v1), nil
+			return null(v1), nil
 		}
 		return eachSide(v1, v2), nil
 	}
@@ -70,11 +70,13 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 
 func pointerDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.IsNil() && v2.IsNil() {
-		return same(v1), nil
+		return null(v1), nil
+	}
+	if v1.IsNil() || v2.IsNil() {
+		return eachSide(v1, v2), nil
 	}
 	if v1.UnsafePointer() == v2.UnsafePointer() {
-		// TODO: cycle detection
-		return same(v1.Elem()), nil
+		return pure(v1), nil
 	}
 	return nx(v1.Elem(), v2.Elem())
 }
@@ -141,7 +143,7 @@ func mapDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	}
 	if v1.IsNil() || v2.IsNil() {
 		if v1.IsNil() && v2.IsNil() {
-			return same(v1), nil
+			return null(v1), nil
 		}
 		return eachSide(v1, v2), nil
 	}
@@ -176,7 +178,7 @@ func mapDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 		if !val1.IsValid() {
 			entries = append(entries, entry{
 				key:       stringifyKey(k),
-				value:     same(val2),
+				value:     imbalanced(val2),
 				rightOnly: true,
 			})
 			continue
@@ -185,7 +187,7 @@ func mapDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 		if !val2.IsValid() {
 			entries = append(entries, entry{
 				key:      stringifyKey(k),
-				value:    same(val1),
+				value:    imbalanced(val1),
 				leftOnly: true,
 			})
 			continue

@@ -6,14 +6,14 @@ import (
 )
 
 type entriesFunc func(v reflect.Value, n nextEntries) []entry
-type nextEntries func(v reflect.Value) []entry
+type nextEntries func(v reflect.Value) diffTree
 
-func entriesOf(v reflect.Value) []entry {
-	f, ok := entriesFuncs[v.Kind()]
-	if !ok {
-		return nil
+func cloneVisits(vis map[visit]bool) map[visit]bool {
+	v := make(map[visit]bool, len(vis))
+	for k := range vis {
+		v[k] = true
 	}
-	return f(v, entriesOf)
+	return v
 }
 
 var entriesFuncs = map[reflect.Kind]entriesFunc{}
@@ -22,6 +22,7 @@ func init() {
 	entriesFuncs[reflect.Array] = sliceEntries
 	entriesFuncs[reflect.Slice] = sliceEntries
 	entriesFuncs[reflect.Interface] = entriesNotImplemented
+	entriesFuncs[reflect.Pointer] = pointerEntries
 	entriesFuncs[reflect.Struct] = structEntries
 	entriesFuncs[reflect.Map] = mapEntries
 	entriesFuncs[reflect.String] = stringEntries
@@ -36,10 +37,19 @@ func sliceEntries(v reflect.Value, nx nextEntries) []entry {
 	for i := 0; i < v.Len(); i++ {
 		x := v.Index(i)
 		es = append(es, entry{
-			value: same(x),
+			value: nx(x),
 		})
 	}
 	return es
+}
+
+func pointerEntries(v reflect.Value, nx nextEntries) []entry {
+	if v.IsNil() {
+		return nil
+	}
+	return []entry{
+		{value: nx(v.Elem())},
+	}
 }
 
 func structEntries(v reflect.Value, nx nextEntries) []entry {
@@ -50,7 +60,7 @@ func structEntries(v reflect.Value, nx nextEntries) []entry {
 		x := v.Field(i)
 		es = append(es, entry{
 			key:   k,
-			value: same(x),
+			value: nx(x),
 		})
 	}
 	return es
@@ -68,7 +78,7 @@ func mapEntries(v reflect.Value, nx nextEntries) []entry {
 		x := iter.Value()
 		es = append(es, entry{
 			key:   stringifyKey(k),
-			value: same(x),
+			value: nx(x),
 		})
 	}
 	return es

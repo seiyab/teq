@@ -35,26 +35,35 @@ func (d Differ) Diff(x, y any) (DiffTree, error) {
 }
 
 type diffProcess struct {
-	differ  Differ
-	visited map[visit]bool
+	differ       Differ
+	leftVisited  map[visit]bool
+	rightVisited map[visit]bool
 }
 
 type visit struct {
-	a1  unsafe.Pointer
-	a2  unsafe.Pointer
+	ptr unsafe.Pointer
 	typ reflect.Type
 }
 
-const maxDepth = 100
+const maxDepth = 500
 
 func (p diffProcess) diff(
 	v1, v2 reflect.Value,
 	depth int,
 ) (diffTree, error) {
-	d := p.differ
 	if depth > maxDepth {
 		return nil, fmt.Errorf("maximum depth exceeded")
 	}
+
+	p, cyclic := p.cycle(v1, v2)
+	if cyclic {
+		return split{
+			left:  cycle{},
+			right: cycle{},
+		}, nil
+	}
+
+	d := p.differ
 	if d.reflectEqual != nil {
 		if d.reflectEqual(v1, v2) {
 			return same(v1), nil
@@ -71,14 +80,6 @@ func (p diffProcess) diff(
 		return eachSide(v1, v2), nil
 	}
 
-	/*
-		// sometimes diffing rollbacks so visit memoization doesn't work.
-		// should be fixed in the future.
-		if p.cycle(v1, v2) {
-			return same(v1), nil
-		}
-	*/
-
 	diffFunc, ok := diffFuncs[v1.Kind()]
 	if !ok {
 		panic("diff is not defined for " + v1.Type().String())
@@ -89,41 +90,50 @@ func (p diffProcess) diff(
 	return diffFunc(v1, v2, n)
 }
 
-func (p *diffProcess) cycle(v1, v2 reflect.Value) bool {
-	if p.visited == nil {
-		p.visited = make(map[visit]bool)
+func (p diffProcess) cycle(v1 reflect.Value, v2 reflect.Value) (diffProcess, bool) {
+	if !hard(v1) && !hard(v2) {
+		return p, false
 	}
-	if hard(v1.Kind()) {
-		if v1.CanAddr() && v2.CanAddr() {
-			addr1 := v1.Addr().UnsafePointer()
-			addr2 := v2.Addr().UnsafePointer()
-
-			// Short circuit
-			if uintptr(addr1) == uintptr(addr2) {
-				return true
-			}
-			if uintptr(addr1) > uintptr(addr2) {
-				// Canonicalize order to reduce number of entries in visited.
-				addr1, addr2 = addr2, addr1
-			}
-
-			// Short circuit if references are already seen.
-			typ := v1.Type()
-			v := visit{addr1, addr2, typ}
-			if p.visited[v] {
-				return true
-			}
-
-			// Remember for later.
-			p.visited[v] = true
-		}
+	leftCycle := false
+	rightCycle := false
+	p = p.clone()
+	if hard(v1) && v1.CanAddr() {
+		addr := v1.Addr().UnsafePointer()
+		vis := visit{ptr: addr, typ: v1.Type()}
+		leftCycle = p.leftVisited[vis]
+		p.leftVisited[vis] = true
 	}
-	return false
+	if hard(v2) && v2.CanAddr() {
+		addr := v2.Addr().UnsafePointer()
+		vis := visit{ptr: addr, typ: v2.Type()}
+		rightCycle = p.rightVisited[vis]
+		p.rightVisited[vis] = true
+	}
+
+	return p, leftCycle && rightCycle
 }
 
-func hard(k reflect.Kind) bool {
-	switch k {
-	case reflect.Array, reflect.Slice, reflect.Map, reflect.Struct:
+func (p diffProcess) clone() diffProcess {
+	l := make(map[visit]bool, len(p.leftVisited))
+	for k, b := range p.leftVisited {
+		l[k] = b
+	}
+	r := make(map[visit]bool, len(p.rightVisited))
+	for k, b := range p.rightVisited {
+		r[k] = b
+	}
+	return diffProcess{
+		differ:       p.differ,
+		leftVisited:  l,
+		rightVisited: r,
+	}
+}
+
+func hard(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return !v.IsNil()
+	case reflect.Struct, reflect.Array:
 		return true
 	}
 	return false

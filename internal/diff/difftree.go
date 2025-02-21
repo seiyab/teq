@@ -18,6 +18,8 @@ type diffTree interface {
 
 var _ diffTree = split{}
 var _ diffTree = mixed{}
+var _ diffTree = cycle{}
+var _ diffTree = nilNode{}
 
 type split struct {
 	left  diffTree
@@ -41,6 +43,55 @@ func (s split) loss() float64 {
 	return 1
 }
 
+func pure(v reflect.Value) diffTree {
+	return recPure(v, make(map[visit]bool))
+}
+
+func recPure(val reflect.Value, visited map[visit]bool) diffTree {
+	k := val.Kind()
+	f, ok := entriesFuncs[k]
+	if !ok {
+		return mixed{
+			distance: 0,
+			sample:   val,
+			entries:  nil,
+		}
+	}
+	if !hard(val) || !val.CanAddr() {
+		return mixed{
+			distance: 0,
+			sample:   val,
+			entries: f(val, func(v reflect.Value) diffTree {
+				return recPure(v, visited)
+			}),
+		}
+	}
+
+	vis := visit{ptr: val.Addr().UnsafePointer(), typ: val.Type()}
+	if visited[vis] {
+		return cycle{}
+	}
+
+	visited = cloneVisits(visited)
+	visited[vis] = true
+
+	return mixed{
+		distance: 0,
+		sample:   val,
+		entries: f(val, func(v reflect.Value) diffTree {
+			return recPure(v, visited)
+		}),
+	}
+}
+
+func same(v reflect.Value) diffTree {
+	return pure(v)
+}
+
+func imbalanced(v reflect.Value) diffTree {
+	return pure(v)
+}
+
 type mixed struct {
 	distance float64
 	sample   reflect.Value
@@ -59,27 +110,39 @@ func (m mixed) loss() float64 {
 	return m.distance
 }
 
-func pure(v reflect.Value) diffTree {
-	return mixed{
-		distance: 0,
-		sample:   v,
-		entries:  entriesOf(v),
-	}
-}
-
-func same(v reflect.Value) diffTree {
-	return pure(v)
-}
-
-func imbalanced(v reflect.Value) diffTree {
-	return pure(v)
-}
-
 func eachSide(left, right reflect.Value) diffTree {
 	return split{
 		left:  pure(left),
 		right: pure(right),
 	}
+}
+
+type cycle struct{}
+
+func (c cycle) docs() []doc.Doc {
+	return []doc.Doc{
+		doc.BothInline("<circular reference>"),
+	}
+}
+
+func (c cycle) loss() float64 {
+	return 0
+}
+
+func null(v reflect.Value) diffTree {
+	return nilNode{v.Type()}
+}
+
+type nilNode struct{ ty reflect.Type }
+
+func (n nilNode) docs() []doc.Doc {
+	return []doc.Doc{
+		doc.BothInline(fmt.Sprintf("%s(nil)", n.ty.String())),
+	}
+}
+
+func (nilNode) loss() float64 {
+	return 0
 }
 
 func (d DiffTree) Format() string {
@@ -126,7 +189,7 @@ func lossForIndexedEntries(es []entry) float64 {
 		case split:
 			total += 2
 			n += 2
-		case mixed:
+		case mixed, cycle, nilNode:
 			if e.leftOnly || e.rightOnly {
 				n += 1
 				total += 1
