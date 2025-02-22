@@ -21,15 +21,11 @@ var entriesFuncs = map[reflect.Kind]entriesFunc{}
 func init() {
 	entriesFuncs[reflect.Array] = sliceEntries
 	entriesFuncs[reflect.Slice] = sliceEntries
-	entriesFuncs[reflect.Interface] = entriesNotImplemented
+	entriesFuncs[reflect.Interface] = interfaceEntries
 	entriesFuncs[reflect.Pointer] = pointerEntries
 	entriesFuncs[reflect.Struct] = structEntries
 	entriesFuncs[reflect.Map] = mapEntries
 	entriesFuncs[reflect.String] = stringEntries
-}
-
-func entriesNotImplemented(v reflect.Value, n nextEntries) []entry {
-	panic("not implemented")
 }
 
 func sliceEntries(v reflect.Value, nx nextEntries) []entry {
@@ -41,6 +37,15 @@ func sliceEntries(v reflect.Value, nx nextEntries) []entry {
 		})
 	}
 	return es
+}
+
+func interfaceEntries(v reflect.Value, nx nextEntries) []entry {
+	if v.IsNil() {
+		return nil
+	}
+	return []entry{
+		{value: nx(v.Elem())},
+	}
 }
 
 func pointerEntries(v reflect.Value, nx nextEntries) []entry {

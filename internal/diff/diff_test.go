@@ -1,6 +1,8 @@
 package diff_test
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -117,6 +119,50 @@ func TestDiff_Pointer(t *testing.T) {
 func ref[T any](x T) *T {
 	return &x
 }
+
+func TestDiff_Interface(t *testing.T) {
+	type S struct {
+		X fmt.Stringer
+		E error
+	}
+
+	t.Run("same", func(t *testing.T) {
+	})
+
+	t.Run("different", func(t *testing.T) {
+		runTest(t,
+			S{X: I(1), E: fmt.Errorf("world")},
+			S{X: I(2), E: fmt.Errorf("world")},
+			strings.Join([]string{
+				`  diff_test.S{`,
+				`-   X: 1,`,
+				`+   X: 2,`,
+				`    E: &errors.errorString{`,
+				`      s: "world",`,
+				`:`,
+				`  }`,
+			}, "\n"))
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		runTest(t,
+			S{X: I(1), E: fmt.Errorf("world")},
+			S{X: nil, E: fmt.Errorf("world")},
+			strings.Join([]string{
+				`  diff_test.S{`,
+				`-   X: 1,`,
+				`+   X: fmt.Stringer(nil),`,
+				`    E: &errors.errorString{`,
+				`      s: "world",`,
+				`:`,
+				`  }`,
+			}, "\n"))
+	})
+}
+
+type I int
+
+func (v I) String() string { return strconv.Itoa(int(v)) }
 
 func TestDiff_Chan(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {

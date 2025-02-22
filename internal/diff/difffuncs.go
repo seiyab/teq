@@ -14,7 +14,7 @@ var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Array:      sliceDiff,
 	reflect.Slice:      sliceDiff,
 	reflect.Chan:       alwaysSplitDiff,
-	reflect.Interface:  notImplemented,
+	reflect.Interface:  interfaceDiff,
 	reflect.Pointer:    pointerDiff,
 	reflect.Struct:     structDiff,
 	reflect.Map:        mapDiff,
@@ -36,10 +36,6 @@ var diffFuncs = map[reflect.Kind]diffFunc{
 	reflect.Float64:    floatDiff,
 	reflect.Complex64:  complexDiff,
 	reflect.Complex128: complexDiff,
-}
-
-func notImplemented(v1, v2 reflect.Value, n next) (diffTree, error) {
-	return nil, fmt.Errorf("not implemented")
 }
 
 func alwaysSplitDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
@@ -66,6 +62,16 @@ func sliceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 		entries:  es,
 		sample:   v1,
 	}, nil
+}
+
+func interfaceDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
+	if v1.IsNil() && v2.IsNil() {
+		return null(v1), nil
+	}
+	if v1.IsNil() || v2.IsNil() {
+		return eachSide(v1, v2), nil
+	}
+	return nx(v1.Elem(), v2.Elem())
 }
 
 func pointerDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {

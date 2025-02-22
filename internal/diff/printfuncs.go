@@ -13,7 +13,7 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Array:      printSlice,
 	reflect.Slice:      printSlice,
 	reflect.Chan:       printChan,
-	reflect.Interface:  notImplementedPrint,
+	reflect.Interface:  printInterface,
 	reflect.Pointer:    printPointer,
 	reflect.Struct:     printStruct,
 	reflect.Map:        printMap,
@@ -104,6 +104,15 @@ func printString(m mixed) []doc.Doc {
 			doc.BothInline(")"),
 		),
 	}
+}
+
+func printInterface(m mixed) []doc.Doc {
+	if m.sample.IsNil() {
+		return []doc.Doc{
+			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
+		}
+	}
+	return m.entries[0].value.docs()
 }
 
 func printPointer(m mixed) []doc.Doc {
