@@ -107,8 +107,8 @@ func TestDiff_Pointer(t *testing.T) {
 
 	t.Run("different", func(t *testing.T) {
 		expected := strings.Join([]string{
-			`- 100`,
-			`+ 200`,
+			`- &100`,
+			`+ &200`,
 		}, "\n")
 		runTest(t, ref(100), ref(200), expected)
 	})

@@ -112,10 +112,9 @@ func printPointer(m mixed) []doc.Doc {
 			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
 		}
 	}
-	// TODO: cycle detection
 	docs := m.entries[0].value.docs()
-	if len(docs) > 0 {
-		docs[0] = docs[0].AddPrefix("&")
+	for i := range docs {
+		docs[i] = docs[i].AddPrefix("&")
 	}
 	return docs
 }

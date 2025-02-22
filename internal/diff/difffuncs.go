@@ -78,7 +78,15 @@ func pointerDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
 	if v1.UnsafePointer() == v2.UnsafePointer() {
 		return pure(v1), nil
 	}
-	return nx(v1.Elem(), v2.Elem())
+	el, err := nx(v1.Elem(), v2.Elem())
+	if err != nil {
+		return nil, err
+	}
+	return mixed{
+		distance: el.loss(),
+		entries:  []entry{{value: el}},
+		sample:   v1,
+	}, nil
 }
 
 func structDiff(v1, v2 reflect.Value, nx next) (diffTree, error) {
