@@ -28,17 +28,13 @@ var printFuncs = map[reflect.Kind]printFunc{
 	reflect.Uint16:     printUint,
 	reflect.Uint32:     printUint,
 	reflect.Uint64:     printUint,
-	reflect.Uintptr:    notImplementedPrint,
+	reflect.Uintptr:    printUintptr,
 	reflect.String:     printString,
 	reflect.Bool:       printBool,
 	reflect.Float32:    printFloat,
 	reflect.Float64:    printFloat,
 	reflect.Complex64:  printComplex,
 	reflect.Complex128: printComplex,
-}
-
-func notImplementedPrint(t mixed) []doc.Doc {
-	panic("not implemented")
 }
 
 func printSlice(m mixed) []doc.Doc {
@@ -197,6 +193,7 @@ func printFn(m mixed) []doc.Doc {
 
 var printInt = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%d", v.Int()) })
 var printUint = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%d", v.Uint()) })
+var printUintptr = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%s(%d)", v.Type().String(), v.Uint()) })
 var printBool = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%t", v.Bool()) })
 var printFloat = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%f", v.Float()) })
 var printComplex = printPrimitive(func(v reflect.Value) string { return fmt.Sprintf("%f", v.Complex()) })
