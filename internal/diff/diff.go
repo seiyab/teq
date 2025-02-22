@@ -55,14 +55,6 @@ func (p diffProcess) diff(
 		return nil, fmt.Errorf("maximum depth exceeded")
 	}
 
-	p, cyclic := p.cycle(v1, v2)
-	if cyclic {
-		return split{
-			left:  cycle{},
-			right: cycle{},
-		}, nil
-	}
-
 	d := p.differ
 	if d.reflectEqual != nil {
 		if d.reflectEqual(v1, v2) {
@@ -78,6 +70,14 @@ func (p diffProcess) diff(
 	}
 	if v1.Type() != v2.Type() {
 		return eachSide(v1, v2), nil
+	}
+
+	p, cyclic := p.cycle(v1, v2)
+	if cyclic {
+		return split{
+			left:  cycle{},
+			right: cycle{},
+		}, nil
 	}
 
 	diffFunc, ok := diffFuncs[v1.Kind()]
