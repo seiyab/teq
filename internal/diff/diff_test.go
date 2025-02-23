@@ -11,76 +11,43 @@ import (
 
 func TestDiff_String(t *testing.T) {
 	t.Run("word", func(t *testing.T) {
-		d, e := diff.New().Diff("hello", "world")
-		if e != nil {
-			t.Fatal(e)
-		}
-		f := d.Format()
-		x := strings.Join([]string{
+		runTest(t, "hello", "world", strings.Join([]string{
 			`- "hello"`,
 			`+ "world"`,
-		}, "\n")
-		if f != x {
-			t.Fatalf("expected %q, got %q", x, f)
-		}
+		}, "\n"))
 	})
 }
 
 func TestDiff_Primitive(t *testing.T) {
 	t.Run("int", func(t *testing.T) {
-		d, e := diff.New().Diff(1, 2)
-		if e != nil {
-			t.Fatal(e)
-		}
-		f := d.Format()
-		x := strings.Join([]string{
+		runTest(t, 1, 2, strings.Join([]string{
 			`- 1`,
 			`+ 2`,
-		}, "\n")
-		if f != x {
-			t.Fatalf("expected %q, got %q", x, f)
-		}
+		}, "\n"))
 	})
 
 	t.Run("float", func(t *testing.T) {
-		d, e := diff.New().Diff(1.0, 2.0)
-		if e != nil {
-			t.Fatal(e)
-		}
-		f := d.Format()
-		x := strings.Join([]string{
+		runTest(t, 1.0, 2.0, strings.Join([]string{
 			`- 1.000000`,
 			`+ 2.000000`,
-		}, "\n")
-		if f != x {
-			t.Fatalf("expected %q, got %q", x, f)
-		}
+		}, "\n"))
 	})
 
 	t.Run("bool", func(t *testing.T) {
-		d, e := diff.New().Diff(true, false)
-		if e != nil {
-			t.Fatal(e)
-		}
-		f := d.Format()
-		x := strings.Join([]string{
+		runTest(t, true, false, strings.Join([]string{
 			`- true`,
 			`+ false`,
-		}, "\n")
-		if f != x {
-			t.Fatalf("expected %q, got %q", x, f)
-		}
+		}, "\n"))
 	})
 }
 
 func TestDiff_Func(t *testing.T) {
 	t.Run("same", func(t *testing.T) {
 		// NOTE: reflect.DeepEqual cannot compare functions.
-		expected := strings.Join([]string{
+		runTest(t, func(*testing.T) {}, func(*testing.T) {}, strings.Join([]string{
 			`- func(*testing.T) { ... }`,
 			`+ func(*testing.T) { ... }`,
-		}, "\n")
-		runTest(t, TestDiff_Func, TestDiff_Func, expected)
+		}, "\n"))
 	})
 
 	type f = func()
@@ -221,12 +188,10 @@ func runTest(t *testing.T, left, right any, want string) {
 	}
 	if d != want {
 		t.Errorf("expected %q, got %q", want, d)
-		p, e := diff.New().Diff(want, d)
+		p, e := diff.DiffString(want, d)
 		if e != nil {
 			t.Fatal(e)
 		}
-		for _, l := range strings.Split(p.Format(), "\n") {
-			t.Log(l)
-		}
+		t.Log("\n" + p)
 	}
 }

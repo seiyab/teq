@@ -7,23 +7,19 @@ import (
 )
 
 func DiffString(x, y any) (string, error) {
-	d := New()
-	t, err := d.Diff(x, y)
+	d := differ{}
+	t, err := d.diff(x, y)
 	if err != nil {
 		return "", err
 	}
 	return t.Format(), nil
 }
 
-type Differ struct {
+type differ struct {
 	reflectEqual func(v1, v2 reflect.Value) bool
 }
 
-func New() Differ {
-	return Differ{}
-}
-
-func (d Differ) Diff(x, y any) (DiffTree, error) {
+func (d differ) diff(x, y any) (DiffTree, error) {
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
 	p := diffProcess{differ: d}
@@ -35,7 +31,7 @@ func (d Differ) Diff(x, y any) (DiffTree, error) {
 }
 
 type diffProcess struct {
-	differ       Differ
+	differ       differ
 	leftVisited  map[visit]bool
 	rightVisited map[visit]bool
 }
