@@ -63,6 +63,15 @@ type mixed struct {
 }
 
 func (m mixed) docs() []doc.Doc {
+	if m.sample.Type().Implements(textMarshalerType) && m.distance == 0 {
+		mt := printMarshalText(m.sample)
+		if mt != nil {
+			return []doc.Doc{
+				mt,
+			}
+		}
+	}
+
 	f, ok := printFuncs[m.sample.Kind()]
 	if !ok {
 		panic("not implemented: " + m.sample.Kind().String())

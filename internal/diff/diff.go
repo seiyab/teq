@@ -60,16 +60,16 @@ func (p diffProcess) diff(
 		if d.reflectEqual(v1, v2) {
 			return same(v1), nil
 		}
-	} else {
-		if reflect.DeepEqual(v1.Interface(), v2.Interface()) {
-			return same(v1), nil
-		}
+	} else if lightDeepEqual(v1, v2) {
+		return same(v1), nil
 	}
 	if !v1.IsValid() || !v2.IsValid() {
 		return nil, fmt.Errorf("invalid value")
 	}
 	if v1.Type() != v2.Type() {
 		return eachSide(v1, v2), nil
+	}
+	if d.reflectEqual == nil {
 	}
 
 	p, cyclic := p.cycle(v1, v2)
@@ -87,7 +87,27 @@ func (p diffProcess) diff(
 	var n next = func(v1, v2 reflect.Value) (diffTree, error) {
 		return p.diff(v1, v2, depth+1)
 	}
-	return diffFunc(v1, v2, n)
+	t, err := diffFunc(v1, v2, n)
+	if err != nil {
+		return nil, err
+	}
+	if v1.Type().Implements(textMarshalerType) {
+		t = marshal{left: v1, right: v2, real: t}
+	}
+	return t, nil
+}
+
+func lightDeepEqual(v1 reflect.Value, v2 reflect.Value) bool {
+	if v1.Type() != v2.Type() {
+		return false
+	}
+	if v1.CanInterface() && v2.CanInterface() {
+		return reflect.DeepEqual(v1.Interface(), v2.Interface())
+	}
+	if v1.CanAddr() && v2.CanAddr() && v1.Addr().Pointer() == v2.Addr().Pointer() {
+		return true
+	}
+	return false // can't go better until go 1.20
 }
 
 func (p diffProcess) cycle(v1 reflect.Value, v2 reflect.Value) (diffProcess, bool) {
