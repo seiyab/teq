@@ -6,8 +6,12 @@ import (
 	"unsafe"
 )
 
-func DiffString(x, y any) (string, error) {
+// DiffString returns a string that represents the difference between x and y.
+func DiffString(x, y any, options ...Option) (string, error) {
 	d := differ{}
+	for _, opt := range options {
+		d = *opt(&d)
+	}
 	t, err := d.diff(x, y)
 	if err != nil {
 		return "", err
@@ -17,13 +21,16 @@ func DiffString(x, y any) (string, error) {
 
 type differ struct {
 	reflectEqual func(v1, v2 reflect.Value) bool
+	formats      formats
 }
+
+type formats map[reflect.Type]func(reflect.Value) string
 
 func (d differ) diff(x, y any) (DiffTree, error) {
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
 	p := diffProcess{differ: d}
-	t, err := p.diff(v1, v2, 0)
+	t, err := p.diff(v1, v2)
 	if err != nil {
 		return DiffTree{}, err
 	}
@@ -32,8 +39,10 @@ func (d differ) diff(x, y any) (DiffTree, error) {
 
 type diffProcess struct {
 	differ       differ
+	depth        int
 	leftVisited  map[visit]bool
 	rightVisited map[visit]bool
+	pureVisited  map[visit]bool
 }
 
 type visit struct {
@@ -45,27 +54,25 @@ const maxDepth = 500
 
 func (p diffProcess) diff(
 	v1, v2 reflect.Value,
-	depth int,
 ) (diffTree, error) {
-	if depth > maxDepth {
+	if p.depth > maxDepth {
 		return nil, fmt.Errorf("maximum depth exceeded")
 	}
+	p.depth = p.depth + 1
 
 	d := p.differ
 	if d.reflectEqual != nil {
 		if d.reflectEqual(v1, v2) {
-			return same(v1), nil
+			return p.pure(v1), nil
 		}
 	} else if lightDeepEqual(v1, v2) {
-		return same(v1), nil
+		return p.pure(v1), nil
 	}
 	if !v1.IsValid() || !v2.IsValid() {
 		return nil, fmt.Errorf("invalid value")
 	}
 	if v1.Type() != v2.Type() {
-		return eachSide(v1, v2), nil
-	}
-	if d.reflectEqual == nil {
+		return p.eachSide(v1, v2), nil
 	}
 
 	p, cyclic := p.cycle(v1, v2)
@@ -80,15 +87,14 @@ func (p diffProcess) diff(
 	if !ok {
 		panic("diff is not defined for " + v1.Type().String())
 	}
-	var n next = func(v1, v2 reflect.Value) (diffTree, error) {
-		return p.diff(v1, v2, depth+1)
-	}
-	t, err := diffFunc(v1, v2, n)
+	t, err := diffFunc(v1, v2, p)
 	if err != nil {
 		return nil, err
 	}
-	if v1.Type().Implements(textMarshalerType) {
-		t = marshal{left: v1, right: v2, real: t}
+	if f, ok := d.formats[v1.Type()]; ok {
+		t = format2{left: v1, right: v2, original: t, format: f}
+	} else if v1.Type().Implements(stringerType) {
+		t = format2{left: v1, right: v2, original: t}
 	}
 	return t, nil
 }
@@ -130,18 +136,11 @@ func (p diffProcess) cycle(v1 reflect.Value, v2 reflect.Value) (diffProcess, boo
 }
 
 func (p diffProcess) clone() diffProcess {
-	l := make(map[visit]bool, len(p.leftVisited))
-	for k, b := range p.leftVisited {
-		l[k] = b
-	}
-	r := make(map[visit]bool, len(p.rightVisited))
-	for k, b := range p.rightVisited {
-		r[k] = b
-	}
 	return diffProcess{
 		differ:       p.differ,
-		leftVisited:  l,
-		rightVisited: r,
+		leftVisited:  cloneVisits(p.leftVisited),
+		rightVisited: cloneVisits(p.rightVisited),
+		pureVisited:  cloneVisits(p.pureVisited),
 	}
 }
 

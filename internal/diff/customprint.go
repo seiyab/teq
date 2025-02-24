@@ -1,25 +1,34 @@
 package diff
 
 import (
-	"encoding"
 	"fmt"
 	"reflect"
 
 	"github.com/seiyab/teq/internal/doc"
 )
 
-var textMarshalerType = reflect.TypeFor[encoding.TextMarshaler]()
+var stringerType = reflect.TypeFor[fmt.Stringer]()
 
-func printMarshalText(v reflect.Value) doc.Doc {
-	if !v.Type().Implements(textMarshalerType) {
+func printStringer(v reflect.Value) doc.Doc {
+	if !v.Type().Implements(stringerType) || !v.CanInterface() {
 		return nil
 	}
-	m := v.Interface().(encoding.TextMarshaler)
-	b, err := m.MarshalText()
-	if err != nil {
+	for v.Kind() == reflect.Interface && !v.IsNil() && v.Type() == stringerType {
+		v = v.Elem()
+	}
+
+	m, ok := v.Interface().(fmt.Stringer)
+	if !ok {
 		return nil
 	}
+	b := m.String()
 	return doc.BothInline(quote(string(b))).
+		AddPrefix(fmt.Sprintf("%s(", v.Type().String())).
+		AddSuffix(")")
+}
+
+func printCustom(f func(reflect.Value) string, v reflect.Value) doc.Doc {
+	return doc.BothInline(quote(f(v))).
 		AddPrefix(fmt.Sprintf("%s(", v.Type().String())).
 		AddSuffix(")")
 }

@@ -1,9 +1,12 @@
 package diff_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/seiyab/teq/internal/diff"
 )
 
 func init() {
@@ -16,19 +19,19 @@ func init() {
 
 var jst *time.Location
 
-func TestDiff_MarshalText(t *testing.T) {
-	t.Run("TextMarshaler", func(t *testing.T) {
+func TestDiff_Stringer(t *testing.T) {
+	t.Run("Stringer", func(t *testing.T) {
 		runTest(t,
 			time.Date(2025, 2, 3, 23, 3, 15, 0, time.UTC),
 			time.Date(2024, 12, 19, 5, 45, 50, 0, jst),
 			strings.Join([]string{
-				`- time.Time("2025-02-03T23:03:15Z")`,
-				`+ time.Time("2024-12-19T05:45:50+09:00")`,
+				`- time.Time("2025-02-03 23:03:15 +0000 UTC")`,
+				`+ time.Time("2024-12-19 05:45:50 +0900 JST")`,
 			}, "\n"),
 		)
 	})
 
-	t.Run("TextMarshaler in slice", func(t *testing.T) {
+	t.Run("Stringer in slice", func(t *testing.T) {
 		runTest(t,
 			[]time.Time{
 				time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -54,14 +57,48 @@ func TestDiff_MarshalText(t *testing.T) {
 			strings.Join([]string{
 				`  []time.Time{`,
 				`:`,
-				`    time.Time("2025-01-03T00:00:00Z"),`,
-				`    time.Time("2025-01-04T00:00:00Z"),`,
-				`-   time.Time("2025-01-05T00:00:00Z"),`,
-				`    time.Time("2025-01-06T00:00:00Z"),`,
-				`    time.Time("2025-01-07T00:00:00Z"),`,
+				`    time.Time("2025-01-03 00:00:00 +0000 UTC"),`,
+				`    time.Time("2025-01-04 00:00:00 +0000 UTC"),`,
+				`-   time.Time("2025-01-05 00:00:00 +0000 UTC"),`,
+				`    time.Time("2025-01-06 00:00:00 +0000 UTC"),`,
+				`    time.Time("2025-01-07 00:00:00 +0000 UTC"),`,
 				`:`,
 				`  }`,
 			}, "\n"),
+		)
+	})
+}
+
+func TestDiff_Format(t *testing.T) {
+	o := diff.WithFormat(func(v int) string {
+		return fmt.Sprintf("custom format(%d)", v)
+	})
+
+	t.Run("format", func(t *testing.T) {
+		runTest(t,
+			1,
+			2,
+			strings.Join([]string{
+				`- int("custom format(1)")`,
+				`+ int("custom format(2)")`,
+			}, "\n"),
+			o,
+		)
+	})
+
+	t.Run("slice", func(t *testing.T) {
+		runTest(t,
+			[]int{1, 2, 3, 4},
+			[]int{1, 2, 4},
+			strings.Join([]string{
+				`  []int{`,
+				`    int("custom format(1)"),`,
+				`    int("custom format(2)"),`,
+				`-   int("custom format(3)"),`,
+				`    int("custom format(4)"),`,
+				`  }`,
+			}, "\n"),
+			o,
 		)
 	})
 }

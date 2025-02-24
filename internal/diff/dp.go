@@ -14,23 +14,22 @@ type dpCell struct {
 	fromB int
 }
 
-func mixedEntries[Value any, List any](
+func mixedEntries[List any](
+	p diffProcess,
 	v1, v2 List,
 	length func(List) int,
-	getValue func(List, int) Value,
 	getReflect func(List, int) reflect.Value,
-	nx func(Value, Value) (diffTree, error),
 ) ([]entry, error) {
 	leading := make([]entry, 0)
 	for i := 0; i < length(v1) && i < length(v2); i++ {
-		t, err := nx(getValue(v1, i), getValue(v2, i))
+		t, err := p.diff(getReflect(v1, i), getReflect(v2, i))
 		if err != nil {
 			return nil, err
 		}
 		if t.loss() > 0 {
 			break
 		}
-		leading = append(leading, entry{value: same(getReflect(v1, i))})
+		leading = append(leading, entry{value: p.pure(getReflect(v1, i))})
 	}
 	k := len(leading)
 
@@ -51,7 +50,7 @@ func mixedEntries[Value any, List any](
 						loss: l + 1,
 						entry: entry{
 							leftOnly: true,
-							value:    imbalanced(getReflect(v1, k+a)),
+							value:    p.pure(getReflect(v1, k+a)),
 						},
 						fromA: a,
 						fromB: b,
@@ -64,7 +63,7 @@ func mixedEntries[Value any, List any](
 						loss: l + 1,
 						entry: entry{
 							rightOnly: true,
-							value:     imbalanced(getReflect(v2, k+b)),
+							value:     p.pure(getReflect(v2, k+b)),
 						},
 						fromA: a,
 						fromB: b,
@@ -72,18 +71,20 @@ func mixedEntries[Value any, List any](
 				}
 			}
 			if k+a < length(v1) && k+b < length(v2) {
-				t, err := nx(getValue(v1, k+a), getValue(v2, k+b))
+				t, err := p.diff(getReflect(v1, k+a), getReflect(v2, k+b))
 				if err != nil {
 					return nil, err
 				}
 				tl := t.loss()
-				m, ok := t.(mixed)
-				if ok && l+tl < dp[a+1][b+1].loss {
-					dp[a+1][b+1] = dpCell{
-						loss:  l + tl,
-						entry: entry{value: m},
-						fromA: a,
-						fromB: b,
+				switch t.(type) {
+				case mixed, cycle, nilNode, format1:
+					if l+tl < dp[a+1][b+1].loss {
+						dp[a+1][b+1] = dpCell{
+							loss:  l + tl,
+							entry: entry{value: t},
+							fromA: a,
+							fromB: b,
+						}
 					}
 				}
 			}
@@ -112,17 +113,16 @@ func mixedEntries[Value any, List any](
 	return entries, nil
 }
 
-func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
+func sliceMixedEntries(v1, v2 reflect.Value, p diffProcess) ([]entry, error) {
 	if v1.Kind() != reflect.Slice && v1.Kind() != reflect.Array ||
 		v2.Kind() != reflect.Slice && v2.Kind() != reflect.Array {
 		return nil, errors.New("unexpected kind")
 	}
 	es, err := mixedEntries(
+		p,
 		v1, v2,
 		func(v reflect.Value) int { return v.Len() },
 		func(v reflect.Value, i int) reflect.Value { return v.Index(i) },
-		func(v reflect.Value, i int) reflect.Value { return v.Index(i) },
-		nx,
 	)
 	if err != nil {
 		return nil, err
@@ -130,15 +130,12 @@ func sliceMixedEntries(v1, v2 reflect.Value, nx next) ([]entry, error) {
 	return es, nil
 }
 
-func multiLineStringEntries(v1, v2 []string) ([]entry, error) {
+func multiLineStringEntries(v1, v2 []string, p diffProcess) ([]entry, error) {
 	return mixedEntries(
+		p,
 		v1, v2,
 		func(v []string) int { return len(v) },
-		func(v []string, i int) string { return v[i] },
 		func(v []string, i int) reflect.Value { return reflect.ValueOf(v[i]) },
-		func(v1, v2 string) (diffTree, error) {
-			return stringDiff(reflect.ValueOf(v1), reflect.ValueOf(v2), nil)
-		},
 	)
 }
 

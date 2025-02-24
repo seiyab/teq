@@ -2,6 +2,7 @@ package diff_test
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"testing"
@@ -90,38 +91,47 @@ func ref[T any](x T) *T {
 func TestDiff_Interface(t *testing.T) {
 	type S struct {
 		X fmt.Stringer
-		E error
+		Y io.Closer
 	}
 
 	t.Run("same", func(t *testing.T) {
 	})
 
-	t.Run("different", func(t *testing.T) {
+	t.Run("different Stringer", func(t *testing.T) {
 		runTest(t,
-			S{X: I(1), E: fmt.Errorf("world")},
-			S{X: I(2), E: fmt.Errorf("world")},
+			S{X: I(1)},
+			S{X: I(2)},
 			strings.Join([]string{
 				`  diff_test.S{`,
-				`-   X: 1,`,
-				`+   X: 2,`,
-				`    E: &errors.errorString{`,
-				`      s: "world",`,
-				`:`,
+				`-   X: diff_test.I("1"),`,
+				`+   X: diff_test.I("2"),`,
+				`    Y: io.Closer(nil),`,
+				`  }`,
+			}, "\n"))
+	})
+
+	t.Run("different", func(t *testing.T) {
+		runTest(t,
+			S{X: I(1), Y: C(1)},
+			S{X: I(1), Y: C(2)},
+			strings.Join([]string{
+				`  diff_test.S{`,
+				`    X: diff_test.I("1"),`,
+				`-   Y: 1,`,
+				`+   Y: 2,`,
 				`  }`,
 			}, "\n"))
 	})
 
 	t.Run("nil", func(t *testing.T) {
 		runTest(t,
-			S{X: I(1), E: fmt.Errorf("world")},
-			S{X: nil, E: fmt.Errorf("world")},
+			S{X: I(1)},
+			S{X: nil},
 			strings.Join([]string{
 				`  diff_test.S{`,
-				`-   X: 1,`,
+				`-   X: diff_test.I("1"),`,
 				`+   X: fmt.Stringer(nil),`,
-				`    E: &errors.errorString{`,
-				`      s: "world",`,
-				`:`,
+				`    Y: io.Closer(nil),`,
 				`  }`,
 			}, "\n"))
 	})
@@ -130,6 +140,10 @@ func TestDiff_Interface(t *testing.T) {
 type I int
 
 func (v I) String() string { return strconv.Itoa(int(v)) }
+
+type C int
+
+func (v C) Close() error { return nil }
 
 func TestDiff_Chan(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
@@ -180,9 +194,9 @@ func TestDiff_TypeMismatch(t *testing.T) {
 	})
 }
 
-func runTest(t *testing.T, left, right any, want string) {
+func runTest(t *testing.T, left, right any, want string, opts ...diff.Option) {
 	t.Helper()
-	d, err := diff.DiffString(left, right)
+	d, err := diff.DiffString(left, right, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}

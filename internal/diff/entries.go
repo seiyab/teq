@@ -5,8 +5,7 @@ import (
 	"reflect"
 )
 
-type entriesFunc func(v reflect.Value, n nextEntries) []entry
-type nextEntries func(v reflect.Value) diffTree
+type entriesFunc func(v reflect.Value, d diffProcess) []entry
 
 func cloneVisits(vis map[visit]bool) map[visit]bool {
 	v := make(map[visit]bool, len(vis))
@@ -28,36 +27,36 @@ func init() {
 	entriesFuncs[reflect.String] = stringEntries
 }
 
-func sliceEntries(v reflect.Value, nx nextEntries) []entry {
+func sliceEntries(v reflect.Value, d diffProcess) []entry {
 	var es []entry
 	for i := 0; i < v.Len(); i++ {
 		x := v.Index(i)
 		es = append(es, entry{
-			value: nx(x),
+			value: d.pure(x),
 		})
 	}
 	return es
 }
 
-func interfaceEntries(v reflect.Value, nx nextEntries) []entry {
+func interfaceEntries(v reflect.Value, d diffProcess) []entry {
 	if v.IsNil() {
 		return nil
 	}
 	return []entry{
-		{value: nx(v.Elem())},
+		{value: d.pure(v.Elem())},
 	}
 }
 
-func pointerEntries(v reflect.Value, nx nextEntries) []entry {
+func pointerEntries(v reflect.Value, d diffProcess) []entry {
 	if v.IsNil() {
 		return nil
 	}
 	return []entry{
-		{value: nx(v.Elem())},
+		{value: d.pure(v.Elem())},
 	}
 }
 
-func structEntries(v reflect.Value, nx nextEntries) []entry {
+func structEntries(v reflect.Value, d diffProcess) []entry {
 	var es []entry
 	n := v.NumField()
 	for i := 0; i < n; i++ {
@@ -65,17 +64,17 @@ func structEntries(v reflect.Value, nx nextEntries) []entry {
 		x := v.Field(i)
 		es = append(es, entry{
 			key:   k,
-			value: nx(x),
+			value: d.pure(x),
 		})
 	}
 	return es
 }
 
-func stringEntries(v reflect.Value, nx nextEntries) []entry {
+func stringEntries(v reflect.Value, d diffProcess) []entry {
 	return nil
 }
 
-func mapEntries(v reflect.Value, nx nextEntries) []entry {
+func mapEntries(v reflect.Value, d diffProcess) []entry {
 	var es []entry
 	iter := v.MapRange()
 	for iter.Next() {
@@ -83,7 +82,7 @@ func mapEntries(v reflect.Value, nx nextEntries) []entry {
 		x := iter.Value()
 		es = append(es, entry{
 			key:   stringifyKey(k),
-			value: nx(x),
+			value: d.pure(x),
 		})
 	}
 	return es

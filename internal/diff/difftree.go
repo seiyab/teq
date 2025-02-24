@@ -19,7 +19,8 @@ var _ diffTree = split{}
 var _ diffTree = mixed{}
 var _ diffTree = cycle{}
 var _ diffTree = nilNode{}
-var _ diffTree = marshal{}
+var _ diffTree = format1{}
+var _ diffTree = format2{}
 
 func (d DiffTree) Format() string {
 	o := d.inner.docs()

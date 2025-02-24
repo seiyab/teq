@@ -6,10 +6,10 @@ import (
 	"github.com/seiyab/teq/internal/doc"
 )
 
-func eachSide(left, right reflect.Value) diffTree {
+func (p diffProcess) eachSide(left, right reflect.Value) diffTree {
 	return split{
-		left:  pure(left),
-		right: pure(right),
+		left:  p.pure(left),
+		right: p.pure(right),
 	}
 }
 

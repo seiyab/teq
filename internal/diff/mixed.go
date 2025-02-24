@@ -7,53 +7,46 @@ import (
 	"github.com/seiyab/teq/internal/doc"
 )
 
-func pure(v reflect.Value) diffTree {
-	return recPure(v, make(map[visit]bool))
-}
+func (d diffProcess) pure(val reflect.Value) diffTree {
+	fm := func(m mixed) diffTree {
+		if f, ok := d.differ.formats[val.Type()]; ok {
+			return format1{value: val, original: m, format: f}
+		} else if val.Type().Implements(stringerType) && val.Kind() != reflect.String {
+			return format1{value: val, original: m, format: nil}
+		}
+		return m
+	}
 
-func recPure(val reflect.Value, visited map[visit]bool) diffTree {
 	k := val.Kind()
 	f, ok := entriesFuncs[k]
 	if !ok {
-		return mixed{
+		return fm(mixed{
 			distance: 0,
 			sample:   val,
 			entries:  nil,
-		}
+		})
 	}
 	if !hard(val) || !val.CanAddr() {
-		return mixed{
+		return fm(mixed{
 			distance: 0,
 			sample:   val,
-			entries: f(val, func(v reflect.Value) diffTree {
-				return recPure(v, visited)
-			}),
-		}
+			entries:  f(val, d),
+		})
 	}
 
 	vis := visit{ptr: val.Addr().UnsafePointer(), typ: val.Type()}
-	if visited[vis] {
+	if d.pureVisited[vis] {
 		return cycle{}
 	}
 
-	visited = cloneVisits(visited)
-	visited[vis] = true
+	d = d.clone()
+	d.pureVisited[vis] = true
 
-	return mixed{
+	return fm(mixed{
 		distance: 0,
 		sample:   val,
-		entries: f(val, func(v reflect.Value) diffTree {
-			return recPure(v, visited)
-		}),
-	}
-}
-
-func same(v reflect.Value) diffTree {
-	return pure(v)
-}
-
-func imbalanced(v reflect.Value) diffTree {
-	return pure(v)
+		entries:  f(val, d),
+	})
 }
 
 type mixed struct {
@@ -63,8 +56,8 @@ type mixed struct {
 }
 
 func (m mixed) docs() []doc.Doc {
-	if m.sample.Type().Implements(textMarshalerType) && m.distance == 0 {
-		mt := printMarshalText(m.sample)
+	if m.sample.Type().Implements(stringerType) && m.distance == 0 {
+		mt := printStringer(m.sample)
 		if mt != nil {
 			return []doc.Doc{
 				mt,
@@ -118,7 +111,7 @@ func lossForIndexedEntries(es []entry) float64 {
 		case split:
 			total += 2
 			n += 2
-		case mixed, cycle, nilNode:
+		case mixed, cycle, nilNode, format1, format2:
 			if e.leftOnly || e.rightOnly {
 				n += 1
 				total += 1
