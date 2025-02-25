@@ -1,13 +1,12 @@
 package diff
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 )
 
-type diffFunc = func(v1, v2 reflect.Value, p diffProcess) (diffTree, error)
+type diffFunc = func(v1, v2 reflect.Value, p diffProcess) diffTree
 
 var diffFuncs map[reflect.Kind]diffFunc
 
@@ -41,102 +40,93 @@ func init() {
 	}
 }
 
-func alwaysSplitDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
-	return p.eachSide(v1, v2), nil
+func alwaysSplitDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
+	return p.eachSide(v1, v2)
 }
 
-func sliceDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
-	if v1.Type() != v2.Type() {
-		return nil, fmt.Errorf("unexpected type mismatch")
-	}
+func sliceDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	if v1.Kind() == reflect.Slice && (v1.IsNil() || v2.IsNil()) {
 		if v1.IsNil() && v2.IsNil() {
-			return null(v1), nil
+			return null(v1)
 		}
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 	es, err := sliceMixedEntries(v1, v2, p)
 	if err != nil {
-		return nil, err
+		return fail{difference: 1, message: err.Error()}
 	}
 
 	return mixed{
 		distance: lossForIndexedEntries(es),
 		entries:  es,
 		sample:   v1,
-	}, nil
+	}
 }
 
-func interfaceDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
+func interfaceDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	if v1.IsNil() && v2.IsNil() {
-		return null(v1), nil
+		return null(v1)
 	}
 	if v1.IsNil() || v2.IsNil() {
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 	return p.diff(v1.Elem(), v2.Elem())
 }
 
-func pointerDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
+func pointerDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	if v1.IsNil() && v2.IsNil() {
-		return null(v1), nil
+		return null(v1)
 	}
 	if v1.IsNil() || v2.IsNil() {
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 	if v1.UnsafePointer() == v2.UnsafePointer() {
-		return p.pure(v1), nil
+		return p.pure(v1)
 	}
-	el, err := p.diff(v1.Elem(), v2.Elem())
-	if err != nil {
-		return nil, err
-	}
+	el := p.diff(v1.Elem(), v2.Elem())
 	return mixed{
 		distance: el.loss(),
 		entries:  []entry{{value: el}},
 		sample:   v1,
-	}, nil
+	}
 }
 
-func structDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
+func structDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	if v1.Type() != v2.Type() {
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 	entries := make([]entry, 0, v1.NumField())
 	for i, n := 0, v1.NumField(); i < n; i++ {
 		key := v1.Type().Field(i).Name
-		vd, err := p.diff(field(v1, i), field(v2, i))
-		if err != nil {
-			return nil, err
-		}
+		vd := p.diff(field(v1, i), field(v2, i))
 		entries = append(entries, entry{key: key, value: vd, leftOnly: true, rightOnly: true})
 	}
 	return mixed{
 		distance: lossForKeyedEntries(entries),
 		entries:  entries,
 		sample:   v1,
-	}, nil
+	}
 }
 
-func stringDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
+func stringDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	s1, s2 := v1.String(), v2.String()
 	if s1 == s2 {
-		return p.pure(v1), nil
+		return p.pure(v1)
 	}
 	lines1 := strings.Split(s1, "\n")
 	lines2 := strings.Split(s2, "\n")
 	if len(lines1) == 1 || len(lines2) == 1 {
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 	es, err := multiLineStringEntries(lines1, lines2, p)
 	if err != nil {
-		return nil, err
+		return fail{difference: 1, message: err.Error()}
 	}
 	return mixed{
 		distance: lossForIndexedEntries(es),
 		entries:  es,
 		sample:   v1,
-	}, nil
+	}
 }
 
 var intDiff = primitiveDiff(func(v reflect.Value) int64 { return v.Int() })
@@ -146,23 +136,23 @@ var floatDiff = primitiveDiff(func(v reflect.Value) float64 { return v.Float() }
 var complexDiff = primitiveDiff(func(v reflect.Value) complex128 { return v.Complex() })
 
 func primitiveDiff[T comparable](f func(v reflect.Value) T) diffFunc {
-	return func(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
+	return func(v1, v2 reflect.Value, p diffProcess) diffTree {
 		if f(v1) == f(v2) {
-			return p.pure(v1), nil
+			return p.pure(v1)
 		}
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 }
 
-func mapDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
+func mapDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	if v1.Type() != v2.Type() {
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 	if v1.IsNil() || v2.IsNil() {
 		if v1.IsNil() && v2.IsNil() {
-			return null(v1), nil
+			return null(v1)
 		}
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 
 	var keys []reflect.Value
@@ -210,10 +200,7 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
 			continue
 		}
 
-		d, err := p.diff(val1, val2)
-		if err != nil {
-			return nil, err
-		}
+		d := p.diff(val1, val2)
 		entries = append(entries, entry{
 			key:   stringifyKey(k),
 			value: d,
@@ -224,7 +211,7 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) (diffTree, error) {
 		distance: lossForKeyedEntries(entries),
 		entries:  entries,
 		sample:   v1,
-	}, nil
+	}
 }
 
 func compareMapKey(a, b reflect.Value) bool {

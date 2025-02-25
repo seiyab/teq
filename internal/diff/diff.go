@@ -1,22 +1,18 @@
 package diff
 
 import (
-	"fmt"
 	"reflect"
 	"unsafe"
 )
 
 // DiffString returns a string that represents the difference between x and y.
-func DiffString(x, y any, options ...Option) (string, error) {
+func DiffString(x, y any, options ...Option) string {
 	d := differ{}
 	for _, opt := range options {
 		d = *opt(&d)
 	}
-	t, err := d.diff(x, y)
-	if err != nil {
-		return "", err
-	}
-	return t.Format(), nil
+	t := d.diff(x, y)
+	return t.Format()
 }
 
 type differ struct {
@@ -26,15 +22,12 @@ type differ struct {
 
 type formats map[reflect.Type]func(reflect.Value) string
 
-func (d differ) diff(x, y any) (DiffTree, error) {
+func (d differ) diff(x, y any) DiffTree {
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
 	p := diffProcess{differ: d}
-	t, err := p.diff(v1, v2)
-	if err != nil {
-		return DiffTree{}, err
-	}
-	return DiffTree{inner: t}, nil
+	t := p.diff(v1, v2)
+	return DiffTree{inner: t}
 }
 
 type diffProcess struct {
@@ -52,27 +45,25 @@ type visit struct {
 
 const maxDepth = 500
 
-func (p diffProcess) diff(
-	v1, v2 reflect.Value,
-) (diffTree, error) {
+func (p diffProcess) diff(v1, v2 reflect.Value) diffTree {
 	if p.depth > maxDepth {
-		return nil, fmt.Errorf("maximum depth exceeded")
+		return fail{difference: 1, message: "max depth exceeded"}
 	}
 	p.depth = p.depth + 1
 
 	d := p.differ
 	if d.reflectEqual != nil {
 		if d.reflectEqual(v1, v2) {
-			return p.pure(v1), nil
+			return p.pure(v1)
 		}
 	} else if lightDeepEqual(v1, v2) {
-		return p.pure(v1), nil
+		return p.pure(v1)
 	}
 	if !v1.IsValid() || !v2.IsValid() {
-		return nil, fmt.Errorf("invalid value")
+		return fail{difference: 1, message: "invalid value"}
 	}
 	if v1.Type() != v2.Type() {
-		return p.eachSide(v1, v2), nil
+		return p.eachSide(v1, v2)
 	}
 
 	p, cyclic := p.cycle(v1, v2)
@@ -80,23 +71,20 @@ func (p diffProcess) diff(
 		return split{
 			left:  cycle{},
 			right: cycle{},
-		}, nil
+		}
 	}
 
 	diffFunc, ok := diffFuncs[v1.Kind()]
 	if !ok {
 		panic("diff is not defined for " + v1.Type().String())
 	}
-	t, err := diffFunc(v1, v2, p)
-	if err != nil {
-		return nil, err
-	}
+	t := diffFunc(v1, v2, p)
 	if f, ok := d.formats[v1.Type()]; ok {
 		t = format2{left: v1, right: v2, original: t, format: f}
 	} else if v1.Type().Implements(stringerType) {
 		t = format2{left: v1, right: v2, original: t}
 	}
-	return t, nil
+	return t
 }
 
 func lightDeepEqual(v1 reflect.Value, v2 reflect.Value) bool {

@@ -21,6 +21,7 @@ var _ diffTree = cycle{}
 var _ diffTree = nilNode{}
 var _ diffTree = format1{}
 var _ diffTree = format2{}
+var _ diffTree = fail{}
 
 func (d DiffTree) Format() string {
 	o := d.inner.docs()

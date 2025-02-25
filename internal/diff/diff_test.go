@@ -196,16 +196,10 @@ func TestDiff_TypeMismatch(t *testing.T) {
 
 func runTest(t *testing.T, left, right any, want string, opts ...diff.Option) {
 	t.Helper()
-	d, err := diff.DiffString(left, right, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	d := diff.DiffString(left, right, opts...)
 	if d != want {
 		t.Errorf("expected %q, got %q", want, d)
-		p, e := diff.DiffString(want, d)
-		if e != nil {
-			t.Fatal(e)
-		}
+		p := diff.DiffString(want, d)
 		t.Log("\n" + p)
 	}
 }

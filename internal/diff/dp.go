@@ -22,10 +22,7 @@ func mixedEntries[List any](
 ) ([]entry, error) {
 	leading := make([]entry, 0)
 	for i := 0; i < length(v1) && i < length(v2); i++ {
-		t, err := p.diff(getReflect(v1, i), getReflect(v2, i))
-		if err != nil {
-			return nil, err
-		}
+		t := p.diff(getReflect(v1, i), getReflect(v2, i))
 		if t.loss() > 0 {
 			break
 		}
@@ -71,10 +68,7 @@ func mixedEntries[List any](
 				}
 			}
 			if k+a < length(v1) && k+b < length(v2) {
-				t, err := p.diff(getReflect(v1, k+a), getReflect(v2, k+b))
-				if err != nil {
-					return nil, err
-				}
+				t := p.diff(getReflect(v1, k+a), getReflect(v2, k+b))
 				tl := t.loss()
 				switch t.(type) {
 				case mixed, cycle, nilNode, format1:
