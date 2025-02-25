@@ -2,15 +2,7 @@ package doc
 
 import "strings"
 
-func LeftInline(text string) inline {
-	return inline{onLeft: true, text: text}
-}
-
-func RightInline(text string) inline {
-	return inline{onRight: true, text: text}
-}
-
-func BothInline(text string) inline {
+func Inline(text string) inline {
 	return inline{onRight: true, onLeft: true, text: text}
 }
 

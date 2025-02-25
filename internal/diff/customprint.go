@@ -22,13 +22,13 @@ func printStringer(v reflect.Value) doc.Doc {
 		return nil
 	}
 	b := m.String()
-	return doc.BothInline(quote(string(b))).
+	return doc.Inline(quote(string(b))).
 		AddPrefix(fmt.Sprintf("%s(", v.Type().String())).
 		AddSuffix(")")
 }
 
 func printCustom(f func(reflect.Value) string, v reflect.Value) doc.Doc {
-	return doc.BothInline(quote(f(v))).
+	return doc.Inline(quote(f(v))).
 		AddPrefix(fmt.Sprintf("%s(", v.Type().String())).
 		AddSuffix(")")
 }

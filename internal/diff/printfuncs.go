@@ -53,9 +53,9 @@ func printSlice(m mixed) []doc.Doc {
 
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(m.sample.Type().String()+"{"),
+			doc.Inline(m.sample.Type().String()+"{"),
 			items,
-			doc.BothInline("}"),
+			doc.Inline("}"),
 		),
 	}
 }
@@ -64,18 +64,18 @@ func printChan(m mixed) []doc.Doc {
 	ty := m.sample.Type().String()
 	if m.sample.IsNil() {
 		return []doc.Doc{
-			doc.BothInline(fmt.Sprintf("%s(nil)", ty)),
+			doc.Inline(fmt.Sprintf("%s(nil)", ty)),
 		}
 	}
 	return []doc.Doc{
-		doc.BothInline(ty),
+		doc.Inline(ty),
 	}
 }
 
 func printString(m mixed) []doc.Doc {
 	if m.loss() == 0 {
 		return []doc.Doc{
-			doc.BothInline(quote(m.sample.String())),
+			doc.Inline(quote(m.sample.String())),
 		}
 	}
 	var items []doc.Doc
@@ -86,18 +86,18 @@ func printString(m mixed) []doc.Doc {
 		}
 		s := t.sample.String()
 		if e.leftOnly {
-			items = append(items, doc.LeftInline(s))
+			items = append(items, doc.Inline(s).Left())
 		} else if e.rightOnly {
-			items = append(items, doc.RightInline(s))
+			items = append(items, doc.Inline(s).Right())
 		} else {
-			items = append(items, doc.BothInline(s))
+			items = append(items, doc.Inline(s))
 		}
 	}
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(m.sample.Type().Name()+"("),
+			doc.Inline(m.sample.Type().Name()+"("),
 			items,
-			doc.BothInline(")"),
+			doc.Inline(")"),
 		),
 	}
 }
@@ -105,7 +105,7 @@ func printString(m mixed) []doc.Doc {
 func printInterface(m mixed) []doc.Doc {
 	if m.sample.IsNil() {
 		return []doc.Doc{
-			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
+			doc.Inline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
 		}
 	}
 	return m.entries[0].value.docs()
@@ -114,7 +114,7 @@ func printInterface(m mixed) []doc.Doc {
 func printPointer(m mixed) []doc.Doc {
 	if m.sample.IsNil() {
 		return []doc.Doc{
-			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
+			doc.Inline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
 		}
 	}
 	docs := m.entries[0].value.docs()
@@ -131,9 +131,9 @@ func printStruct(m mixed) []doc.Doc {
 	}
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(m.sample.Type().String()+"{"),
+			doc.Inline(m.sample.Type().String()+"{"),
 			items,
-			doc.BothInline("}"),
+			doc.Inline("}"),
 		),
 	}
 }
@@ -153,7 +153,7 @@ func printStructEntry(e entry) []doc.Doc {
 func printMap(m mixed) []doc.Doc {
 	if m.sample.IsNil() {
 		return []doc.Doc{
-			doc.BothInline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
+			doc.Inline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
 		}
 	}
 
@@ -172,9 +172,9 @@ func printMap(m mixed) []doc.Doc {
 
 	return []doc.Doc{
 		doc.Block(
-			doc.BothInline(m.sample.Type().String()+"{"),
+			doc.Inline(m.sample.Type().String()+"{"),
 			items,
-			doc.BothInline("}"),
+			doc.Inline("}"),
 		),
 	}
 }
@@ -183,11 +183,11 @@ func printFn(m mixed) []doc.Doc {
 	ty := m.sample.Type().String()
 	if m.sample.IsNil() {
 		return []doc.Doc{
-			doc.BothInline(fmt.Sprintf("%s(nil)", ty)),
+			doc.Inline(fmt.Sprintf("%s(nil)", ty)),
 		}
 	}
 	return []doc.Doc{
-		doc.BothInline(fmt.Sprintf("%s { ... }", ty)),
+		doc.Inline(fmt.Sprintf("%s { ... }", ty)),
 	}
 }
 
@@ -200,6 +200,6 @@ var printComplex = printPrimitive(func(v reflect.Value) string { return fmt.Spri
 
 func printPrimitive(f func(v reflect.Value) string) printFunc {
 	return func(m mixed) []doc.Doc {
-		return []doc.Doc{doc.BothInline(f(m.sample))}
+		return []doc.Doc{doc.Inline(f(m.sample))}
 	}
 }

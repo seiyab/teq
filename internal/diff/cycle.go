@@ -6,7 +6,7 @@ type cycle struct{}
 
 func (c cycle) docs() []doc.Doc {
 	return []doc.Doc{
-		doc.BothInline("<circular reference>"),
+		doc.Inline("<circular reference>"),
 	}
 }
 

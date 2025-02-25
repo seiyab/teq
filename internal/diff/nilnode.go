@@ -15,7 +15,7 @@ type nilNode struct{ ty reflect.Type }
 
 func (n nilNode) docs() []doc.Doc {
 	return []doc.Doc{
-		doc.BothInline(fmt.Sprintf("%s(nil)", n.ty.String())),
+		doc.Inline(fmt.Sprintf("%s(nil)", n.ty.String())),
 	}
 }
 
