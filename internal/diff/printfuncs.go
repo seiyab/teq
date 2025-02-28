@@ -144,7 +144,7 @@ func printStructEntry(e entry) []doc.Doc {
 	for _, d := range docs {
 		items = append(
 			items,
-			d.AddPrefix(e.key+": ").AddSuffix(","),
+			d.AddPrefix(e.keyName+": ").AddSuffix(","),
 		)
 	}
 	return items
@@ -166,7 +166,7 @@ func printMap(m mixed) []doc.Doc {
 			} else if e.rightOnly {
 				d = d.Right()
 			}
-			items = append(items, d.AddPrefix(e.key+": ").AddSuffix(","))
+			items = append(items, d.AddPrefix(e.keyName+": ").AddSuffix(","))
 		}
 	}
 

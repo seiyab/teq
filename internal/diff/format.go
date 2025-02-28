@@ -15,7 +15,7 @@ type format1 struct {
 func (f format1) docs() []doc.Doc {
 	if f.format != nil {
 		return []doc.Doc{
-			printCustom(f.format, f.value),
+			doc.Inline(printCustom(f.format, f.value)),
 		}
 	}
 	return f.original.docs()
@@ -37,8 +37,8 @@ func (m format2) docs() []doc.Doc {
 		l := printCustom(m.format, m.left)
 		r := printCustom(m.format, m.right)
 		return []doc.Doc{
-			l.Left(),
-			r.Right(),
+			doc.Inline(l).Left(),
+			doc.Inline(r).Right(),
 		}
 	}
 
@@ -48,8 +48,8 @@ func (m format2) docs() []doc.Doc {
 		return m.original.docs() // fallback
 	}
 	return []doc.Doc{
-		l.Left(),
-		r.Right(),
+		doc.Inline(*l).Left(),
+		doc.Inline(*r).Right(),
 	}
 }
 

@@ -102,3 +102,56 @@ func TestDiff_Format(t *testing.T) {
 		)
 	})
 }
+
+func TestDiff_MapKey(t *testing.T) {
+	t.Run("Stringer", func(t *testing.T) {
+		runTest(t,
+			map[time.Duration]int{
+				time.Second: 10,
+				time.Minute: 2,
+				time.Hour:   1,
+			},
+			map[time.Duration]int{
+				time.Millisecond: 10,
+				time.Minute:      3,
+				time.Hour:        1,
+			},
+			strings.Join([]string{
+				`  map[time.Duration]int{`,
+				`+   time.Duration("1ms"): 10,`,
+				`-   time.Duration("1s"): 10,`,
+				`-   time.Duration("1m0s"): 2,`,
+				`+   time.Duration("1m0s"): 3,`,
+				`    time.Duration("1h0m0s"): 1,`,
+				`  }`,
+			}, "\n"),
+		)
+	})
+
+	t.Run("Format", func(t *testing.T) {
+		o := diff.WithFormat(func(v int) string {
+			return fmt.Sprintf("custom format(%d)", v)
+		})
+		runTest(t,
+			map[int]int{
+				1: 10,
+				2: 2,
+				3: 1,
+			},
+			map[int]int{
+				1: 10,
+				2: 3,
+				3: 1,
+			},
+			strings.Join([]string{
+				`  map[int]int{`,
+				`    int("custom format(1)"): int("custom format(10)"),`,
+				`-   int("custom format(2)"): int("custom format(2)"),`,
+				`+   int("custom format(2)"): int("custom format(3)"),`,
+				`    int("custom format(3)"): int("custom format(1)"),`,
+				`  }`,
+			}, "\n"),
+			o,
+		)
+	})
+}

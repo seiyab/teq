@@ -63,8 +63,8 @@ func structEntries(v reflect.Value, d diffProcess) []entry {
 		k := v.Type().Field(i).Name
 		x := v.Field(i)
 		es = append(es, entry{
-			key:   k,
-			value: d.pure(x),
+			keyName: k,
+			value:   d.pure(x),
 		})
 	}
 	return es
@@ -81,14 +81,21 @@ func mapEntries(v reflect.Value, d diffProcess) []entry {
 		k := iter.Key()
 		x := iter.Value()
 		es = append(es, entry{
-			key:   stringifyKey(k),
-			value: d.pure(x),
+			keyName: stringifyKey(k, d.differ.formats),
+			value:   d.pure(x),
 		})
 	}
 	return es
 }
 
-func stringifyKey(v reflect.Value) string {
+func stringifyKey(v reflect.Value, fmts formats) string {
+	if f, ok := fmts[v.Type()]; ok {
+		return printCustom(f, v)
+	}
+	if s := printStringer(v); s != nil {
+		return *s
+	}
+
 	switch v.Kind() {
 	case reflect.String:
 		return fmt.Sprintf("%q", v.String())
@@ -109,7 +116,7 @@ func stringifyKey(v reflect.Value) string {
 		if v.IsNil() {
 			return fmt.Sprintf("%s(<nil>)", v.Type().String())
 		}
-		return stringifyKey(v.Elem())
+		return stringifyKey(v.Elem(), fmts)
 	default:
 		return fmt.Sprint(v.Interface())
 	}

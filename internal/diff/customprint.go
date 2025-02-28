@@ -3,13 +3,11 @@ package diff
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/seiyab/teq/internal/doc"
 )
 
 var stringerType = reflect.TypeFor[fmt.Stringer]()
 
-func printStringer(v reflect.Value) doc.Doc {
+func printStringer(v reflect.Value) *string {
 	if !v.Type().Implements(stringerType) || !v.CanInterface() {
 		return nil
 	}
@@ -21,14 +19,10 @@ func printStringer(v reflect.Value) doc.Doc {
 	if !ok {
 		return nil
 	}
-	b := m.String()
-	return doc.Inline(quote(string(b))).
-		AddPrefix(fmt.Sprintf("%s(", v.Type().String())).
-		AddSuffix(")")
+	s := fmt.Sprintf("%s(%q)", v.Type().String(), m.String())
+	return &s
 }
 
-func printCustom(f func(reflect.Value) string, v reflect.Value) doc.Doc {
-	return doc.Inline(quote(f(v))).
-		AddPrefix(fmt.Sprintf("%s(", v.Type().String())).
-		AddSuffix(")")
+func printCustom(f func(reflect.Value) string, v reflect.Value) string {
+	return fmt.Sprintf("%s(%q)", v.Type().String(), f(v))
 }

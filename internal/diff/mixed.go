@@ -60,7 +60,7 @@ func (m mixed) docs() []doc.Doc {
 		mt := printStringer(m.sample)
 		if mt != nil {
 			return []doc.Doc{
-				mt,
+				doc.Inline(*mt),
 			}
 		}
 	}
@@ -77,7 +77,8 @@ func (m mixed) loss() float64 {
 }
 
 type entry struct {
-	key       string
+	keyName   string
+	keyValue  reflect.Value
 	value     diffTree
 	leftOnly  bool
 	rightOnly bool

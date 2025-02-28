@@ -99,7 +99,7 @@ func structDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	for i, n := 0, v1.NumField(); i < n; i++ {
 		key := v1.Type().Field(i).Name
 		vd := p.diff(field(v1, i), field(v2, i))
-		entries = append(entries, entry{key: key, value: vd, leftOnly: true, rightOnly: true})
+		entries = append(entries, entry{keyName: key, value: vd, leftOnly: true, rightOnly: true})
 	}
 	return mixed{
 		distance: lossForKeyedEntries(entries),
@@ -170,7 +170,7 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	}
 
 	sort.Slice(keys, func(i, j int) bool {
-		return compareMapKey(keys[i], keys[j])
+		return compareMapKey(keys[i], keys[j], p.differ.formats)
 	})
 
 	var entries []entry
@@ -184,7 +184,8 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 
 		if !val1.IsValid() {
 			entries = append(entries, entry{
-				key:       stringifyKey(k),
+				keyName:   stringifyKey(k, p.differ.formats),
+				keyValue:  k,
 				value:     p.pure(val2),
 				rightOnly: true,
 			})
@@ -193,7 +194,8 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 
 		if !val2.IsValid() {
 			entries = append(entries, entry{
-				key:      stringifyKey(k),
+				keyName:  stringifyKey(k, p.differ.formats),
+				keyValue: k,
 				value:    p.pure(val1),
 				leftOnly: true,
 			})
@@ -202,8 +204,9 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 
 		d := p.diff(val1, val2)
 		entries = append(entries, entry{
-			key:   stringifyKey(k),
-			value: d,
+			keyName:  stringifyKey(k, p.differ.formats),
+			keyValue: k,
+			value:    d,
 		})
 	}
 
@@ -214,9 +217,9 @@ func mapDiff(v1, v2 reflect.Value, p diffProcess) diffTree {
 	}
 }
 
-func compareMapKey(a, b reflect.Value) bool {
+func compareMapKey(a, b reflect.Value, fmts formats) bool {
 	if a.Kind() != b.Kind() {
-		return stringifyKey(a) < stringifyKey(b)
+		return stringifyKey(a, fmts) < stringifyKey(b, fmts)
 	}
 	switch a.Kind() {
 	case reflect.String:
@@ -230,7 +233,7 @@ func compareMapKey(a, b reflect.Value) bool {
 	case reflect.Bool:
 		return !a.Bool() && b.Bool()
 	default:
-		return stringifyKey(a) < stringifyKey(b)
+		return stringifyKey(a, fmts) < stringifyKey(b, fmts)
 	}
 }
 
