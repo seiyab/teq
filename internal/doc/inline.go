@@ -9,6 +9,7 @@ func Inline(text string) inline {
 type inline struct {
 	onLeft  bool
 	onRight bool
+	warn    bool
 	text    string
 }
 
@@ -20,6 +21,8 @@ func (l inline) print(depth int) virtualLines {
 		marker = "- "
 	} else if isRight {
 		marker = "+ "
+	} else if l.warn {
+		marker = "! "
 	}
 	return virtualLines{
 		{
@@ -38,6 +41,11 @@ func (l inline) Left() Doc {
 func (l inline) Right() Doc {
 	l.onLeft = false
 	l.onRight = true
+	return l
+}
+
+func (l inline) Warn() Doc {
+	l.warn = true
 	return l
 }
 

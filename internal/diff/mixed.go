@@ -67,7 +67,9 @@ func (m mixed) docs() []doc.Doc {
 
 	f, ok := printFuncs[m.sample.Kind()]
 	if !ok {
-		panic("not implemented: " + m.sample.Kind().String())
+		return []doc.Doc{
+			doc.Inline(fmt.Sprintf("%s(failed to print)", m.sample.Type())),
+		}
 	}
 	return f(m)
 }

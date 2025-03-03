@@ -82,7 +82,9 @@ func printString(m mixed) []doc.Doc {
 	for _, e := range m.entries {
 		t, ok := e.value.(mixed)
 		if !ok {
-			panic("unexpected type")
+			return []doc.Doc{
+				doc.Inline(fmt.Sprintf("%s(failed to print)", m.sample.Type())),
+			}
 		}
 		s := t.sample.String()
 		if e.leftOnly {

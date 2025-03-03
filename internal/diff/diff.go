@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -76,7 +77,7 @@ func (p diffProcess) diff(v1, v2 reflect.Value) diffTree {
 
 	diffFunc, ok := diffFuncs[v1.Kind()]
 	if !ok {
-		panic("diff is not defined for " + v1.Type().String())
+		return fail{difference: 1, message: fmt.Sprintf("unsopported kind: %s", v1.Kind())}
 	}
 	t := diffFunc(v1, v2, p)
 	if f, ok := d.formats[v1.Type()]; ok {
