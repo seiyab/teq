@@ -13,7 +13,7 @@ type format1 struct {
 }
 
 func (f format1) docs() []doc.Doc {
-	if f.format != nil {
+	if f.format != nil && f.value.CanInterface() {
 		return []doc.Doc{
 			doc.Inline(printCustom(f.format, f.value)),
 		}
@@ -33,7 +33,7 @@ type format2 struct {
 }
 
 func (m format2) docs() []doc.Doc {
-	if m.format != nil {
+	if m.format != nil && m.left.CanInterface() && m.right.CanInterface() {
 		l := printCustom(m.format, m.left)
 		r := printCustom(m.format, m.right)
 		return []doc.Doc{

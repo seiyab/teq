@@ -67,7 +67,8 @@ func (p diffProcess) diff(v1, v2 reflect.Value) diffTree {
 		return p.eachSide(v1, v2)
 	}
 
-	p, cyclic := p.cycle(v1, v2)
+	var cyclic bool
+	p, cyclic = p.cycle(v1, v2)
 	if cyclic {
 		return split{
 			left:  cycle{},
@@ -135,7 +136,7 @@ func (p diffProcess) clone() diffProcess {
 
 func hard(v reflect.Value) bool {
 	switch v.Kind() {
-	case reflect.Pointer, reflect.Slice, reflect.Map:
+	case reflect.Pointer, reflect.Slice, reflect.Map, reflect.Interface:
 		return !v.IsNil()
 	case reflect.Struct, reflect.Array:
 		return true

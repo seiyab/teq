@@ -89,7 +89,7 @@ func mapEntries(v reflect.Value, d diffProcess) []entry {
 }
 
 func stringifyKey(v reflect.Value, fmts formats) string {
-	if f, ok := fmts[v.Type()]; ok {
+	if f, ok := fmts[v.Type()]; ok && v.CanInterface() {
 		return printCustom(f, v)
 	}
 	if s := printStringer(v); s != nil {

@@ -9,7 +9,7 @@ import (
 
 func (d diffProcess) pure(val reflect.Value) diffTree {
 	fm := func(m mixed) diffTree {
-		if f, ok := d.differ.formats[val.Type()]; ok {
+		if f, ok := d.differ.formats[val.Type()]; ok && val.CanInterface() {
 			return format1{value: val, original: m, format: f}
 		} else if val.Type().Implements(stringerType) && val.Kind() != reflect.String {
 			return format1{value: val, original: m, format: nil}
@@ -23,7 +23,9 @@ func (d diffProcess) pure(val reflect.Value) diffTree {
 		return fm(mixed{
 			distance: 0,
 			sample:   val,
-			entries:  nil,
+			entries: []entry{
+				{value: fail{message: "debug"}},
+			},
 		})
 	}
 	if !hard(val) || !val.CanAddr() {
@@ -47,6 +49,16 @@ func (d diffProcess) pure(val reflect.Value) diffTree {
 		sample:   val,
 		entries:  f(val, d),
 	})
+}
+
+func (d diffProcess) leftPure(val reflect.Value) diffTree {
+	d.pureVisited = d.leftVisited
+	return d.pure(val)
+}
+
+func (d diffProcess) rightPure(val reflect.Value) diffTree {
+	d.pureVisited = d.rightVisited
+	return d.pure(val)
 }
 
 type mixed struct {

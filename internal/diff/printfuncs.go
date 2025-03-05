@@ -38,6 +38,12 @@ var printFuncs = map[reflect.Kind]printFunc{
 }
 
 func printSlice(m mixed) []doc.Doc {
+	if m.loss() == 0 && m.sample.Kind() == reflect.Slice && m.sample.IsNil() {
+		return []doc.Doc{
+			doc.Inline(fmt.Sprintf("%s(nil)", m.sample.Type().String())),
+		}
+	}
+
 	var items []doc.Doc
 	for _, e := range m.entries {
 		docs := e.value.docs()

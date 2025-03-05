@@ -26,7 +26,7 @@ func mixedEntries[List any](
 		if t.loss() > 0 {
 			break
 		}
-		leading = append(leading, entry{value: p.pure(getReflect(v1, i))})
+		leading = append(leading, entry{value: p.leftPure(getReflect(v1, i))})
 	}
 	k := len(leading)
 
@@ -47,7 +47,7 @@ func mixedEntries[List any](
 						loss: l + 1,
 						entry: entry{
 							leftOnly: true,
-							value:    p.pure(getReflect(v1, k+a)),
+							value:    p.leftPure(getReflect(v1, k+a)),
 						},
 						fromA: a,
 						fromB: b,
@@ -60,7 +60,7 @@ func mixedEntries[List any](
 						loss: l + 1,
 						entry: entry{
 							rightOnly: true,
-							value:     p.pure(getReflect(v2, k+b)),
+							value:     p.rightPure(getReflect(v2, k+b)),
 						},
 						fromA: a,
 						fromB: b,
