@@ -35,7 +35,7 @@ func (teq Teq) Equal(t TestingT, expected, actual any) bool {
 	}()
 	ok := teq.equal(expected, actual)
 	if !ok {
-		t.Errorf(teq.report(expected, actual))
+		t.Error(teq.report(expected, actual))
 	}
 	return ok
 }
