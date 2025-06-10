@@ -111,10 +111,8 @@ func TestEqual_CustomizedFormat(t *testing.T) {
 differences:
 --- expected
 +++ actual
-@@ -1 +1 @@
--2000-02-01T12:30:00Z
-+2000-02-01T20:30:00Z
-`
+- time.Time("2000-02-01 12:30:00 +0000 UTC")
++ time.Time("2000-02-01 20:30:00 +0000 UTC")`
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -143,14 +141,13 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -2,4 +2,5 @@
-   int(1): 2000-02-01T12:30:00Z,
--  int(2): 2000-02-01T20:30:00Z,
-+  int(2): 2000-02-01T20:00:00Z,
-   int(3): 2000-02-02T10:00:00Z,
-+  int(4): 2000-02-02T20:30:00Z,
- }
-`
+  map[int]time.Time{
+    1: time.Time("2000-02-01 12:30:00 +0000 UTC"),
+-   2: time.Time("2000-02-01 20:30:00 +0000 UTC"),
++   2: time.Time("2000-02-01 20:00:00 +0000 UTC"),
+    3: time.Time("2000-02-02 10:00:00 +0000 UTC"),
++   4: time.Time("2000-02-02 20:30:00 +0000 UTC"),
+  }`
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -167,12 +164,10 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,3 @@
- []time.Duration{
--  1h0m0s,
-+  2s,
- }
-`
+  []time.Duration{
+-   time.Duration("1h0m0s"),
++   time.Duration("2s"),
+  }`
 		if mt.errors[0] != expected {
 			t.Errorf("expected %q, got %q", expected, mt.errors[0])
 		}
@@ -194,10 +189,8 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -1 +1 @@
--int
-+string
-`
+- reflect.Kind("int")
++ reflect.Kind("string")`
 		if mt.errors[0] != expected {
 			t.Errorf("expected %q, got %q", expected, mt.errors[0])
 		}

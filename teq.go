@@ -145,6 +145,10 @@ func (teq Teq) equal(x, y any) bool {
 	}
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
+	return teq.reflectEqual(v1, v2)
+}
+
+func (teq Teq) reflectEqual(v1, v2 reflect.Value) bool {
 	if v1.Type() != v2.Type() {
 		return false
 	}

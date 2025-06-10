@@ -20,14 +20,20 @@ func (teq Teq) report(expected, actual any) string {
 	}
 	k := ve.Kind()
 	_, ok := teq.formats[ve.Type()]
-	if !ok &&
-		k != reflect.Struct &&
-		k != reflect.Map &&
-		k != reflect.Slice &&
-		k != reflect.Array &&
-		k != reflect.String &&
-		k != reflect.Pointer {
-		return simple
+	if !ok {
+		if k != reflect.Struct &&
+			k != reflect.Map &&
+			k != reflect.Slice &&
+			k != reflect.Array &&
+			k != reflect.String &&
+			k != reflect.Pointer {
+			return simple
+		}
+		es, ok1 := expected.(string)
+		as, ok2 := actual.(string)
+		if ok1 && ok2 && !strings.Contains(es, "\n") && !strings.Contains(as, "\n") {
+			return simple
+		}
 	}
 
 	head := []string{
@@ -40,6 +46,7 @@ func (teq Teq) report(expected, actual any) string {
 	for _, f := range teq.formats {
 		options = append(options, akashi.WithFormat(f))
 	}
+	options = append(options, akashi.WithReflectEqual(teq.reflectEqual))
 	diff := akashi.DiffString(expected, actual, options...)
 	return strings.Join(append(head, diff), "\n")
 }
