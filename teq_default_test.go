@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/seiyab/teq"
@@ -103,12 +104,10 @@ func structs() []test {
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,3 @@
- teq_test.s{
--  i: int(1),
-+  i: int(2),
- }
-`}},
+  teq_test.s{
+-   i: 1,
++   i: 2,
+  }`}},
 		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}},
 
 		{withPointer{ref(1)}, withPointer{ref(1)}, nil},
@@ -116,12 +115,10 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,3 @@
- teq_test.withPointer{
--  i: *int(1),
-+  i: *int(2),
- }
-`}},
+  teq_test.withPointer{
+-   i: &1,
++   i: &2,
+  }`}},
 	}
 }
 
@@ -132,26 +129,18 @@ func slices() []test {
 differences:
 --- expected
 +++ actual
-@@ -1,4 +1,4 @@
- []int{
-+  int(2),
-   int(1),
--  int(2),
- }
-`}},
+  []int{
+-   1,
+    2,
++   1,
+  }`}},
 		{io.Reader(bytes.NewBuffer([]byte("a"))), io.Reader(bytes.NewBuffer(nil)), []string{
 			`not equal
 differences:
 --- expected
 +++ actual
-@@ -1,5 +1,3 @@
- *bytes.Buffer{
--  buf: []uint8{
--    uint8(97),
--  },
-+  buf: []uint8{},
-   off: int(0),
-`,
+- *bytes.Buffer("a")
++ *bytes.Buffer("")`,
 		}},
 	}
 }
@@ -163,32 +152,25 @@ func maps() []test {
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,3 @@
- map[string]int{
--  "a": int(1),
-+  "a": int(2),
- }
-`}},
+  map[string]int{
+-   "a": 1,
++   "a": 2,
+  }`}},
 		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{`not equal
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,3 @@
- map[string]int{
--  "a": int(1),
-+  "b": int(1),
- }
-`}},
+  map[string]int{
+-   "a": 1,
++   "b": 1,
+  }`}},
 		{map[string]int{"a": 0}, map[string]int{}, []string{`not equal
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1 @@
--map[string]int{
--  "a": int(0),
--}
-+map[string]int{}
-`}},
+  map[string]int{
+-   "a": 0,
+  }`}},
 
 		{
 			map[int]map[string]int{
@@ -210,12 +192,12 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -2,3 +2,3 @@
-   int(1): map[string]int{
--    "abc": int(1),
-+    "abc": int(2),
-   },
-`},
+  map[int]map[string]int{
+    1: map[string]int{
+-     "abc": 1,
++     "abc": 2,
+    },
+  }`},
 		},
 		{
 			map[string]string{
@@ -236,12 +218,14 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -3,3 +3,3 @@
-   "b": "2",
--  "c": "3",
-+  "c": "10000",
-   "d": "4",
-`},
+  map[string]string{
+    "a": "1",
+    "b": "2",
+-   "c": "3",
++   "c": "10000",
+    "d": "4",
+    "e": "5",
+  }`},
 		},
 	}
 }
@@ -263,25 +247,11 @@ func interfaces() []test {
 differences:
 --- expected
 +++ actual
-@@ -1,16 +1,3 @@
- []io.Reader{
--  io.Reader(*bytes.Buffer{
--    buf: []uint8{
--      uint8(97),
--    },
--    off: int(0),
--    lastRead: bytes.readOp(0),
--  }),
--  io.Reader(*bytes.Buffer{
--    buf: []uint8{
--      uint8(98),
--    },
--    off: int(0),
--    lastRead: bytes.readOp(0),
--  }),
-+  io.Reader(<nil>),
- }
-`}},
+  []io.Reader{
+-   *bytes.Buffer("a"),
+-   *bytes.Buffer("b"),
++   io.Reader(nil),
+  }`}},
 	}
 }
 
@@ -292,26 +262,30 @@ func channels() []test {
 		{c1, c1, nil},
 		{c1, c2, []string{fmt.Sprintf("expected %p, got %p", c1, c2)}},
 		{[]chan int{c1}, []chan int{c1}, nil},
-		{[]chan int{c1}, []chan int{c2}, []string{fmt.Sprintf(`not equal
-differences:
---- expected
-+++ actual
-@@ -1,3 +1,3 @@
- []chan int{
--  chan int(%p),
-+  chan int(%p),
- }
-`, c1, c2)}},
-		{[]chan int{c1}, []chan int{nil}, []string{fmt.Sprintf(`not equal
-differences:
---- expected
-+++ actual
-@@ -1,3 +1,3 @@
- []chan int{
--  chan int(%p),
-+  chan int(<nil>),
- }
-`, c1)}},
+		{[]chan int{c1}, []chan int{c2}, []string{
+			strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  []chan int{",
+				fmt.Sprintf("-   chan int at [%p],", c1),
+				fmt.Sprintf("+   chan int at [%p],", c2),
+				"  }",
+			}, "\n"),
+		}},
+		{[]chan int{c1}, []chan int{nil}, []string{
+			strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  []chan int{",
+				fmt.Sprintf("-   chan int at [%p],", c1),
+				"+   chan int(nil),",
+				"  }",
+			}, "\n"),
+		}},
 	}
 }
 
@@ -354,15 +328,16 @@ func recursions() []test {
 differences:
 --- expected
 +++ actual
-@@ -1,5 +1,5 @@
- teq_test.privateRecursiveStruct{
--  i: int(1),
-+  i: int(2),
-   r: *teq_test.privateRecursiveStruct{
--    i: int(1),
-+    i: int(2),
-     r: *<cyclic>,
-`}},
+  teq_test.privateRecursiveStruct{
+-   i: 1,
++   i: 2,
+    r: &teq_test.privateRecursiveStruct{
+-     i: 1,
++     i: 2,
+-     r: &<circular reference>,
++     r: &<circular reference>,
+    },
+  }`}},
 		{r1_4, r1_5, nil},
 		{r1_4, r1_6, nil},
 

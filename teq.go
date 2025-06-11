@@ -10,7 +10,7 @@ type Teq struct {
 	MaxDepth int
 
 	transforms map[reflect.Type]func(reflect.Value) reflect.Value
-	formats    map[reflect.Type]func(reflect.Value) string
+	formats    map[reflect.Type]any
 	equals     map[reflect.Type]func(reflect.Value, reflect.Value) bool
 }
 
@@ -20,7 +20,7 @@ func New() Teq {
 		MaxDepth: 1_000,
 
 		transforms: make(map[reflect.Type]func(reflect.Value) reflect.Value),
-		formats:    make(map[reflect.Type]func(reflect.Value) string),
+		formats:    make(map[reflect.Type]any),
 		equals:     make(map[reflect.Type]func(reflect.Value, reflect.Value) bool),
 	}
 }
@@ -104,11 +104,7 @@ func (teq *Teq) AddFormat(format any) {
 	if ty.Out(0).Kind() != reflect.String {
 		panic("format must return string")
 	}
-	formatValue := reflect.ValueOf(format)
-	reflectFormat := func(v reflect.Value) string {
-		return formatValue.Call([]reflect.Value{v})[0].String()
-	}
-	teq.formats[ty.In(0)] = reflectFormat
+	teq.formats[ty.In(0)] = format
 }
 
 // AddEqual adds an equal function to Teq.
@@ -145,6 +141,10 @@ func (teq Teq) equal(x, y any) bool {
 	}
 	v1 := reflect.ValueOf(x)
 	v2 := reflect.ValueOf(y)
+	return teq.reflectEqual(v1, v2)
+}
+
+func (teq Teq) reflectEqual(v1, v2 reflect.Value) bool {
 	if v1.Type() != v2.Type() {
 		return false
 	}

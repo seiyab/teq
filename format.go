@@ -3,11 +3,9 @@ package teq
 import (
 	"fmt"
 	"reflect"
-	"sort"
 	"strings"
-	"unsafe"
 
-	"github.com/pmezard/go-difflib/difflib"
+	"github.com/seiyab/akashi"
 )
 
 func (teq Teq) report(expected, actual any) string {
@@ -22,267 +20,33 @@ func (teq Teq) report(expected, actual any) string {
 	}
 	k := ve.Kind()
 	_, ok := teq.formats[ve.Type()]
-	if !ok &&
-		k != reflect.Struct &&
-		k != reflect.Map &&
-		k != reflect.Slice &&
-		k != reflect.Array &&
-		k != reflect.String &&
-		k != reflect.Pointer {
-		return simple
-	}
-	if k == reflect.String {
-		if len(ve.String()) < 10 && len(va.String()) < 10 {
+	if !ok {
+		if k != reflect.Struct &&
+			k != reflect.Map &&
+			k != reflect.Slice &&
+			k != reflect.Array &&
+			k != reflect.String &&
+			k != reflect.Pointer {
 			return simple
 		}
-		if strings.Contains(ve.String(), "\n") || strings.Contains(va.String(), "\n") {
-			r, ok := richReport(
-				difflib.SplitLines(ve.String()),
-				difflib.SplitLines(va.String()),
-			)
-			if !ok {
-				return simple
-			}
-			return r
+		es, ok1 := expected.(string)
+		as, ok2 := actual.(string)
+		if ok1 && ok2 && !strings.Contains(es, "\n") && !strings.Contains(as, "\n") {
+			return simple
 		}
 	}
 
-	r, ok := richReport(
-		teq.format(ve, make(map[fmtVisit]bool), 0).diffSequence(),
-		teq.format(va, make(map[fmtVisit]bool), 0).diffSequence(),
-	)
-	if !ok {
-		return simple
-	}
-	return r
-}
-
-func richReport(a []string, b []string) (string, bool) {
-	diff := difflib.UnifiedDiff{
-		A:        a,
-		B:        b,
-		FromFile: "expected",
-		ToFile:   "actual",
-		Context:  1,
-	}
-	diffTxt, err := difflib.GetUnifiedDiffString(diff)
-	if err != nil {
-		return fmt.Sprintf("failed to get diff: %v", err), false
-	}
-	if diffTxt == "" {
-		return "", false
-	}
-	return strings.Join([]string{
+	head := []string{
 		"not equal",
 		"differences:",
-		diffTxt,
-	}, "\n"), true
-}
-
-type fmtVisit struct {
-	a   unsafe.Pointer
-	typ reflect.Type
-}
-
-func (teq Teq) format(v reflect.Value, visited map[fmtVisit]bool, depth int) lines {
-	if depth > teq.MaxDepth {
-		return linesOf("<max depth exceeded>")
+		"--- expected",
+		"+++ actual",
 	}
-	if !v.IsValid() {
-		return linesOf("<invalid>")
+	options := []akashi.Option{}
+	for _, f := range teq.formats {
+		options = append(options, akashi.WithFormat(f))
 	}
-
-	if hard(v.Kind()) {
-		if v.CanAddr() {
-			addr := v.Addr().UnsafePointer()
-
-			// If references are already seen.
-			typ := v.Type()
-			v := fmtVisit{addr, typ}
-			if visited[v] {
-				return linesOf("<cyclic>")
-			}
-
-			// Remember for later.
-			visited[v] = true
-		}
-	}
-
-	ty := v.Type()
-	if fm, ok := teq.formats[ty]; ok {
-		return linesOf(fm(v))
-	}
-
-	fmtFn, ok := fmts[v.Kind()]
-	if !ok {
-		fmtFn = todoFmt
-	}
-	next := func(v reflect.Value) lines {
-		return teq.format(v, visited, depth+1)
-	}
-	return fmtFn(v, next)
-}
-
-var fmts = map[reflect.Kind]func(reflect.Value, func(reflect.Value) lines) lines{
-	reflect.Array:      arrayFmt,
-	reflect.Slice:      sliceFmt,
-	reflect.Chan:       chanFmt,
-	reflect.Interface:  interfaceFmt,
-	reflect.Pointer:    pointerFmt,
-	reflect.Struct:     structFmt,
-	reflect.Map:        mapFmt,
-	reflect.Func:       funcFmt,
-	reflect.Int:        intFmt,
-	reflect.Int8:       intFmt,
-	reflect.Int16:      intFmt,
-	reflect.Int32:      intFmt,
-	reflect.Int64:      intFmt,
-	reflect.Uint:       uintFmt,
-	reflect.Uint8:      uintFmt,
-	reflect.Uint16:     uintFmt,
-	reflect.Uint32:     uintFmt,
-	reflect.Uint64:     uintFmt,
-	reflect.Uintptr:    uintFmt,
-	reflect.String:     stringFmt,
-	reflect.Bool:       boolFmt,
-	reflect.Float32:    floatFmt,
-	reflect.Float64:    floatFmt,
-	reflect.Complex64:  complexFmt,
-	reflect.Complex128: complexFmt,
-}
-
-func todoFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("<%s>", v.String()))
-}
-
-func arrayFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	open := fmt.Sprintf("%s{", v.Type().String())
-	close := "}"
-	if v.Len() == 0 {
-		return linesOf(open + close)
-	}
-	result := make(lines, 0, v.Len()+2)
-	result = append(result, lineOf(open))
-	for i := 0; i < v.Len(); i++ {
-		elem := next(v.Index(i)).followedBy(",")
-		result = append(result, elem.indent()...)
-	}
-	result = append(result, lineOf(close))
-	return result
-
-}
-
-func sliceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	open := fmt.Sprintf("[]%s{", v.Type().Elem().String())
-	close := "}"
-	if v.Len() == 0 {
-		return linesOf(open + close)
-	}
-	result := make(lines, 0, v.Len()+2)
-	result = append(result, lineOf(open))
-	for i := 0; i < v.Len(); i++ {
-		elem := next(v.Index(i)).followedBy(",")
-		result = append(result, elem.indent()...)
-	}
-	result = append(result, lineOf(close))
-	return result
-}
-
-func chanFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	if v.IsNil() {
-		return linesOf(fmt.Sprintf("%s(<nil>)", v.Type()))
-	}
-	return linesOf(fmt.Sprintf("%s(0x%x)", v.Type(), v.Pointer()))
-}
-
-func interfaceFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	open := fmt.Sprintf("%s(", v.Type().String())
-	close := ")"
-	if v.IsNil() {
-		return linesOf(open + "<nil>" + close)
-	}
-	return next(v.Elem()).ledBy(open).followedBy(close)
-}
-
-func pointerFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	if v.IsNil() {
-		return linesOf("<nil>")
-	}
-	return next(v.Elem()).ledBy("*")
-}
-
-func structFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	open := fmt.Sprintf("%s{", v.Type().String())
-	close := "}"
-	if v.NumField() == 0 {
-		return linesOf(open + close)
-	}
-	result := make(lines, 0, v.NumField()+2)
-	result = append(result, lineOf(open))
-	for i := 0; i < v.NumField(); i++ {
-		entry := next(v.Field(i)).
-			ledBy(v.Type().Field(i).Name + ": ").
-			followedBy(",")
-		result = append(result, entry.indent()...)
-	}
-	result = append(result, lineOf(close))
-	return result
-}
-
-func mapFmt(v reflect.Value, next func(reflect.Value) lines) lines {
-	open := fmt.Sprintf("map[%s]%s{", v.Type().Key(), v.Type().Elem())
-	close := "}"
-	if v.Len() == 0 {
-		return linesOf(open + close)
-	}
-	result := make(lines, 0, v.Len()+2)
-	result = append(result, lineOf(open))
-
-	type entry struct {
-		key   string
-		lines lines
-	}
-	entries := make([]entry, 0, v.Len())
-	for _, key := range v.MapKeys() {
-		var e entry
-		keyLines := next(key)
-		e.key = keyLines.key()
-		valLines := next(v.MapIndex(key))
-		e.lines = keyValue(keyLines, valLines)
-		entries = append(entries, e)
-	}
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].key < entries[j].key
-	})
-	for _, e := range entries {
-		result = append(result, e.lines.indent()...)
-	}
-	result = append(result, lineOf(close))
-	return result
-}
-
-func funcFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	if v.IsNil() {
-		return linesOf(fmt.Sprintf("%s(<nil>)", v.Type()))
-	}
-	return linesOf(fmt.Sprintf("%s(0x%x)", v.Type(), v.Pointer()))
-}
-
-func intFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%s(%d)", v.Type(), v.Int()))
-}
-func uintFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%s(%d)", v.Type(), v.Uint()))
-}
-func stringFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%q", v.String()))
-}
-func boolFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%t", v.Bool()))
-}
-func floatFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%s(%f)", v.Type(), v.Float()))
-}
-func complexFmt(v reflect.Value, _ func(reflect.Value) lines) lines {
-	return linesOf(fmt.Sprintf("%s(%f, %f)", v.Type(), real(v.Complex()), imag(v.Complex())))
+	options = append(options, akashi.WithReflectEqual(teq.reflectEqual))
+	diff := akashi.DiffString(expected, actual, options...)
+	return strings.Join(append(head, diff), "\n")
 }

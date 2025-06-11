@@ -28,11 +28,13 @@ mno`
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,2 @@
- abc
--def
- ghi
-`
+  string(
+    abc
+-   def
+    ghi
+    jkl
+:
+  )`
 	if mt.errors[0] != expected {
 		t.Errorf("expected %q, got %q", expected, mt.errors[0])
 	}
@@ -51,12 +53,10 @@ func TestEqual_Format(t *testing.T) {
 differences:
 --- expected
 +++ actual
-@@ -1,3 +1,3 @@
- [1]int{
--  int(0),
-+  int(1),
- }
-`
+  [1]int{
+-   0,
++   1,
+  }`
 		if mt.errors[0] != expected {
 			t.Errorf("expected %q, got %q", expected, mt.errors[0])
 		}
@@ -78,10 +78,8 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -1 +1 @@
--*int(100)
-+<nil>
-`
+- &100
++ *int(nil)`
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -99,12 +97,13 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -4,3 +4,3 @@
-   Jar: http.CookieJar(<nil>),
--  Timeout: time.Duration(1000000000),
-+  Timeout: time.Duration(0),
- }
-`
+  &http.Client{
+    Transport: http.RoundTripper(nil),
+    CheckRedirect: func(*http.Request, []*http.Request) error(nil),
+    Jar: http.CookieJar(nil),
+-   Timeout: time.Duration("1s"),
++   Timeout: time.Duration("0s"),
+  }`
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -126,12 +125,13 @@ differences:
 differences:
 --- expected
 +++ actual
-@@ -3,3 +3,3 @@
-   *"b",
--  *"c",
-+  *"d",
-   <nil>,
-`
+  []*string{
+    &"a",
+    &"b",
+-   &"c",
++   &"d",
+    *string(nil),
+  }`
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
