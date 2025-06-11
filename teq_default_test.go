@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/seiyab/teq"
@@ -261,22 +262,30 @@ func channels() []test {
 		{c1, c1, nil},
 		{c1, c2, []string{fmt.Sprintf("expected %p, got %p", c1, c2)}},
 		{[]chan int{c1}, []chan int{c1}, nil},
-		{[]chan int{c1}, []chan int{c2}, []string{`not equal
-differences:
---- expected
-+++ actual
-  []chan int{
--   chan int,
-+   chan int,
-  }`}},
-		{[]chan int{c1}, []chan int{nil}, []string{`not equal
-differences:
---- expected
-+++ actual
-  []chan int{
--   chan int,
-+   chan int(nil),
-  }`}},
+		{[]chan int{c1}, []chan int{c2}, []string{
+			strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  []chan int{",
+				fmt.Sprintf("-   chan int at [%p],", c1),
+				fmt.Sprintf("+   chan int at [%p],", c2),
+				"  }",
+			}, "\n"),
+		}},
+		{[]chan int{c1}, []chan int{nil}, []string{
+			strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  []chan int{",
+				fmt.Sprintf("-   chan int at [%p],", c1),
+				"+   chan int(nil),",
+				"  }",
+			}, "\n"),
+		}},
 	}
 }
 

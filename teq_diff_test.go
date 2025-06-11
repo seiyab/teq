@@ -98,7 +98,7 @@ differences:
 --- expected
 +++ actual
   &http.Client{
-:
+    Transport: http.RoundTripper(nil),
     CheckRedirect: func(*http.Request, []*http.Request) error(nil),
     Jar: http.CookieJar(nil),
 -   Timeout: time.Duration("1s"),
