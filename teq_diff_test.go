@@ -2,6 +2,7 @@ package teq_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,17 +25,19 @@ mno`
 	if len(mt.errors) != 1 {
 		t.Fatalf("expected 1 error, got %d", len(mt.errors))
 	}
-	expected := `not equal
-differences:
---- expected
-+++ actual
-  string(
-    abc
--   def
-    ghi
-    jkl
-:
-  )`
+	expected := strings.Join([]string{
+		"not equal",
+		"differences:",
+		"--- expected",
+		"+++ actual",
+		"  string(",
+		"    abc",
+		red + "-   def" + reset,
+		"    ghi",
+		"    jkl",
+		":",
+		"  )",
+	}, "\n")
 	if mt.errors[0] != expected {
 		t.Errorf("expected %q, got %q", expected, mt.errors[0])
 	}
@@ -49,14 +52,16 @@ func TestEqual_Format(t *testing.T) {
 		if len(mt.errors) != 1 {
 			t.Fatalf("expected 1 error, got %d", len(mt.errors))
 		}
-		expected := `not equal
-differences:
---- expected
-+++ actual
-  [1]int{
--   0,
-+   1,
-  }`
+		expected := strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  [1]int{",
+			red + "-   0," + reset,
+			green + "+   1," + reset,
+			"  }",
+		}, "\n")
 		if mt.errors[0] != expected {
 			t.Errorf("expected %q, got %q", expected, mt.errors[0])
 		}
@@ -74,12 +79,14 @@ differences:
 			if len(mt.errors) != 1 {
 				t.Fatalf("expected 1 error, got %d", len(mt.errors))
 			}
-			expected := `not equal
-differences:
---- expected
-+++ actual
-- &100
-+ *int(nil)`
+			expected := strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				red + "- &100" + reset,
+				green + "+ *int(nil)" + reset,
+			}, "\n")
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -93,17 +100,19 @@ differences:
 			if len(mt.errors) != 1 {
 				t.Fatalf("expected 1 error, got %d", len(mt.errors))
 			}
-			expected := `not equal
-differences:
---- expected
-+++ actual
-  &http.Client{
-    Transport: http.RoundTripper(nil),
-    CheckRedirect: func(*http.Request, []*http.Request) error(nil),
-    Jar: http.CookieJar(nil),
--   Timeout: time.Duration("1s"),
-+   Timeout: time.Duration("0s"),
-  }`
+			expected := strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  &http.Client{",
+				"    Transport: http.RoundTripper(nil),",
+				"    CheckRedirect: func(*http.Request, []*http.Request) error(nil),",
+				"    Jar: http.CookieJar(nil),",
+				red + "-   Timeout: time.Duration(\"1s\")," + reset,
+				green + "+   Timeout: time.Duration(\"0s\")," + reset,
+				"  }",
+			}, "\n")
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -121,17 +130,19 @@ differences:
 			if len(mt.errors) != 1 {
 				t.Fatalf("expected 1 error, got %d", len(mt.errors))
 			}
-			expected := `not equal
-differences:
---- expected
-+++ actual
-  []*string{
-    &"a",
-    &"b",
--   &"c",
-+   &"d",
-    *string(nil),
-  }`
+			expected := strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  []*string{",
+				"    &\"a\",",
+				"    &\"b\",",
+				red + "-   &\"c\"," + reset,
+				green + "+   &\"d\"," + reset,
+				"    *string(nil),",
+				"  }",
+			}, "\n")
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}

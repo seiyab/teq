@@ -100,47 +100,55 @@ func structs() []test {
 
 	return []test{
 		{s{1}, s{1}, nil},
-		{s{1}, s{2}, []string{`not equal
-differences:
---- expected
-+++ actual
-  teq_test.s{
--   i: 1,
-+   i: 2,
-  }`}},
+		{s{1}, s{2}, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  teq_test.s{",
+			red + "-   i: 1," + reset,
+			green + "+   i: 2," + reset,
+			"  }",
+		}, "\n")}},
 		{s{1}, anotherS{1}, []string{"expected {1}, got {1}"}},
 
 		{withPointer{ref(1)}, withPointer{ref(1)}, nil},
-		{withPointer{ref(1)}, withPointer{ref(2)}, []string{`not equal
-differences:
---- expected
-+++ actual
-  teq_test.withPointer{
--   i: &1,
-+   i: &2,
-  }`}},
+		{withPointer{ref(1)}, withPointer{ref(2)}, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  teq_test.withPointer{",
+			red + "-   i: &1," + reset,
+			green + "+   i: &2," + reset,
+			"  }",
+		}, "\n")}},
 	}
 }
 
 func slices() []test {
 	return []test{
 		{[]int{1, 2}, []int{1, 2}, nil},
-		{[]int{1, 2}, []int{2, 1}, []string{`not equal
-differences:
---- expected
-+++ actual
-  []int{
--   1,
-    2,
-+   1,
-  }`}},
+		{[]int{1, 2}, []int{2, 1}, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  []int{",
+			red + "-   1," + reset,
+			"    2,",
+			green + "+   1," + reset,
+			"  }",
+		}, "\n")}},
 		{io.Reader(bytes.NewBuffer([]byte("a"))), io.Reader(bytes.NewBuffer(nil)), []string{
-			`not equal
-differences:
---- expected
-+++ actual
-- *bytes.Buffer("a")
-+ *bytes.Buffer("")`,
+			strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				red + "- *bytes.Buffer(\"a\")" + reset,
+				green + "+ *bytes.Buffer(\"\")" + reset,
+			}, "\n"),
 		}},
 	}
 }
@@ -148,29 +156,35 @@ differences:
 func maps() []test {
 	return []test{
 		{map[string]int{"a": 1}, map[string]int{"a": 1}, nil},
-		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{`not equal
-differences:
---- expected
-+++ actual
-  map[string]int{
--   "a": 1,
-+   "a": 2,
-  }`}},
-		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{`not equal
-differences:
---- expected
-+++ actual
-  map[string]int{
--   "a": 1,
-+   "b": 1,
-  }`}},
-		{map[string]int{"a": 0}, map[string]int{}, []string{`not equal
-differences:
---- expected
-+++ actual
-  map[string]int{
--   "a": 0,
-  }`}},
+		{map[string]int{"a": 1}, map[string]int{"a": 2}, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  map[string]int{",
+			red + "-   \"a\": 1," + reset,
+			green + "+   \"a\": 2," + reset,
+			"  }",
+		}, "\n")}},
+		{map[string]int{"a": 1}, map[string]int{"b": 1}, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  map[string]int{",
+			red + "-   \"a\": 1," + reset,
+			green + "+   \"b\": 1," + reset,
+			"  }",
+		}, "\n")}},
+		{map[string]int{"a": 0}, map[string]int{}, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  map[string]int{",
+			red + "-   \"a\": 0," + reset,
+			"  }",
+		}, "\n")}},
 
 		{
 			map[int]map[string]int{
@@ -188,16 +202,18 @@ differences:
 			map[int]map[string]int{
 				1: {"abc": 2},
 			},
-			[]string{`not equal
-differences:
---- expected
-+++ actual
-  map[int]map[string]int{
-    1: map[string]int{
--     "abc": 1,
-+     "abc": 2,
-    },
-  }`},
+			[]string{strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  map[int]map[string]int{",
+				"    1: map[string]int{",
+				red + "-     \"abc\": 1," + reset,
+				green + "+     \"abc\": 2," + reset,
+				"    },",
+				"  }",
+			}, "\n")},
 		},
 		{
 			map[string]string{
@@ -214,18 +230,20 @@ differences:
 				"d": "4",
 				"e": "5",
 			},
-			[]string{`not equal
-differences:
---- expected
-+++ actual
-  map[string]string{
-    "a": "1",
-    "b": "2",
--   "c": "3",
-+   "c": "10000",
-    "d": "4",
-    "e": "5",
-  }`},
+			[]string{strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  map[string]string{",
+				"    \"a\": \"1\",",
+				"    \"b\": \"2\",",
+				red + "-   \"c\": \"3\"," + reset,
+				green + "+   \"c\": \"10000\"," + reset,
+				"    \"d\": \"4\",",
+				"    \"e\": \"5\",",
+				"  }",
+			}, "\n")},
 		},
 	}
 }
@@ -243,15 +261,17 @@ func interfaces() []test {
 				bytes.NewBuffer([]byte("b")),
 			},
 			[]io.Reader{nil},
-			[]string{`not equal
-differences:
---- expected
-+++ actual
-  []io.Reader{
--   *bytes.Buffer("a"),
--   *bytes.Buffer("b"),
-+   io.Reader(nil),
-  }`}},
+			[]string{strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  []io.Reader{",
+				red + "-   *bytes.Buffer(\"a\")," + reset,
+				red + "-   *bytes.Buffer(\"b\")," + reset,
+				green + "+   io.Reader(nil)," + reset,
+				"  }",
+			}, "\n")}},
 	}
 }
 
@@ -269,8 +289,8 @@ func channels() []test {
 				"--- expected",
 				"+++ actual",
 				"  []chan int{",
-				fmt.Sprintf("-   chan int at [%p],", c1),
-				fmt.Sprintf("+   chan int at [%p],", c2),
+				fmt.Sprintf("%s-   chan int at [%p],%s", red, c1, reset),
+				fmt.Sprintf("%s+   chan int at [%p],%s", green, c2, reset),
 				"  }",
 			}, "\n"),
 		}},
@@ -281,8 +301,8 @@ func channels() []test {
 				"--- expected",
 				"+++ actual",
 				"  []chan int{",
-				fmt.Sprintf("-   chan int at [%p],", c1),
-				"+   chan int(nil),",
+				fmt.Sprintf("%s-   chan int at [%p],%s", red, c1, reset),
+				green + "+   chan int(nil)," + reset,
 				"  }",
 			}, "\n"),
 		}},
@@ -324,20 +344,22 @@ func recursions() []test {
 	return []test{
 		{r1_1, r1_1, nil},
 		{r1_1, r1_2, nil},
-		{r1_1, r1_3, []string{`not equal
-differences:
---- expected
-+++ actual
-  teq_test.privateRecursiveStruct{
--   i: 1,
-+   i: 2,
-    r: &teq_test.privateRecursiveStruct{
--     i: 1,
-+     i: 2,
--     r: &<circular reference>,
-+     r: &<circular reference>,
-    },
-  }`}},
+		{r1_1, r1_3, []string{strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  teq_test.privateRecursiveStruct{",
+			red + "-   i: 1," + reset,
+			green + "+   i: 2," + reset,
+			"    r: &teq_test.privateRecursiveStruct{",
+			red + "-     i: 1," + reset,
+			green + "+     i: 2," + reset,
+			red + "-     r: &<circular reference>," + reset,
+			green + "+     r: &<circular reference>," + reset,
+			"    },",
+			"  }",
+		}, "\n")}},
 		{r1_4, r1_5, nil},
 		{r1_4, r1_6, nil},
 
