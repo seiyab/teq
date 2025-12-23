@@ -3,6 +3,7 @@ package teq_test
 import (
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -107,12 +108,14 @@ func TestEqual_CustomizedFormat(t *testing.T) {
 			if len(mt.errors) != 1 {
 				t.Fatalf("expected 1 error, got %d", len(mt.errors))
 			}
-			expected := `not equal
-differences:
---- expected
-+++ actual
-- time.Time("2000-02-01T12:30:00Z")
-+ time.Time("2000-02-01T20:30:00Z")`
+			expected := strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				red + "- time.Time(\"2000-02-01T12:30:00Z\")" + reset,
+				green + "+ time.Time(\"2000-02-01T20:30:00Z\")" + reset,
+			}, "\n")
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -137,17 +140,19 @@ differences:
 			if len(mt.errors) != 1 {
 				t.Fatalf("expected 1 error, got %d", len(mt.errors))
 			}
-			expected := `not equal
-differences:
---- expected
-+++ actual
-  map[int]time.Time{
-    1: time.Time("2000-02-01T12:30:00Z"),
--   2: time.Time("2000-02-01T20:30:00Z"),
-+   2: time.Time("2000-02-01T20:00:00Z"),
-    3: time.Time("2000-02-02T10:00:00Z"),
-+   4: time.Time("2000-02-02T20:30:00Z"),
-  }`
+			expected := strings.Join([]string{
+				"not equal",
+				"differences:",
+				"--- expected",
+				"+++ actual",
+				"  map[int]time.Time{",
+				"    1: time.Time(\"2000-02-01T12:30:00Z\"),",
+				red + "-   2: time.Time(\"2000-02-01T20:30:00Z\")," + reset,
+				green + "+   2: time.Time(\"2000-02-01T20:00:00Z\")," + reset,
+				"    3: time.Time(\"2000-02-02T10:00:00Z\"),",
+				green + "+   4: time.Time(\"2000-02-02T20:30:00Z\")," + reset,
+				"  }",
+			}, "\n")
 			if mt.errors[0] != expected {
 				t.Errorf("expected %q, got %q", expected, mt.errors[0])
 			}
@@ -160,14 +165,16 @@ differences:
 		if len(mt.errors) != 1 {
 			t.Fatalf("expected 1 error, got %d", len(mt.errors))
 		}
-		expected := `not equal
-differences:
---- expected
-+++ actual
-  []time.Duration{
--   time.Duration("1h0m0s"),
-+   time.Duration("2s"),
-  }`
+		expected := strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			"  []time.Duration{",
+			red + "-   time.Duration(\"1h0m0s\")," + reset,
+			green + "+   time.Duration(\"2s\")," + reset,
+			"  }",
+		}, "\n")
 		if mt.errors[0] != expected {
 			t.Errorf("expected %q, got %q", expected, mt.errors[0])
 		}
@@ -185,12 +192,14 @@ differences:
 		if len(mt.errors) != 1 {
 			t.Fatalf("expected 1 error, got %d", len(mt.errors))
 		}
-		expected := `not equal
-differences:
---- expected
-+++ actual
-- reflect.Kind("int")
-+ reflect.Kind("string")`
+		expected := strings.Join([]string{
+			"not equal",
+			"differences:",
+			"--- expected",
+			"+++ actual",
+			red + "- reflect.Kind(\"int\")" + reset,
+			green + "+ reflect.Kind(\"string\")" + reset,
+		}, "\n")
 		if mt.errors[0] != expected {
 			t.Errorf("expected %q, got %q", expected, mt.errors[0])
 		}
