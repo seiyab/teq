@@ -42,7 +42,9 @@ func (teq Teq) report(expected, actual any) string {
 		"--- expected",
 		"+++ actual",
 	}
-	options := []akashi.Option{}
+	options := []akashi.Option{
+		akashi.WithColor(),
+	}
 	for _, f := range teq.formats {
 		options = append(options, akashi.WithFormat(f))
 	}
