@@ -1,6 +1,6 @@
 # teq
 
-![CI](https://github.com/seiyab/teq/actions/workflows/go.yml/badge.svg)
+![CI](https://github.com/seiyab/teq/actions/workflows/go.yml/badge.svg) [![Go Reference](https://pkg.go.dev/badge/github.com/seiyab/teq.svg)](https://pkg.go.dev/github.com/seiyab/teq)
 
 teq is a Go library designed to enhance your testing experience by providing a flexible and customizable way to perform deep equality checks. It's especially useful when you need to compare complex objects or types that have specific equality conditions.
 
