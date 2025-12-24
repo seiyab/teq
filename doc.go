@@ -16,7 +16,7 @@ Then, you can add your transforms and formats:
 
 	// time.Time will be transformed into UTC time. So equality check with `tq` will be timezone-insensitive.
 	tq.AddTransform(func(d time.Time) time.Time {
-	    return d.In(d.UTC)
+	    return d.UTC()
 	})
 
 	// time.Time will be shown in RFC3339 format when it appear in diff.
